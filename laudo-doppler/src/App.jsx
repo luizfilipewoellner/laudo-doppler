@@ -681,7 +681,6 @@ function buildMemberReport(member, side) {
 
   const doppler = [
     "DOPPLER: Avaliação hemodinâmica ao ortostatismo (Doppler colorido e análise espectral):",
-    "",
     ...buildProfundasDoppler(member),
     ...buildMagnaDoppler(member),
     ...buildDopplerCotoMagna(member),
@@ -2020,11 +2019,12 @@ async function exportDocx(state, patientName, examDate) {
   const title = reportTitle(state);
 
   const FONT = "Helvetica Neue";
-  const SZ = 16;
-  const SZ_HD = 18;
-  const SZ_TITLE = 20;
-  const SP = 40;
-  const SP_HD = 60;
+  const SZ = 24;       // 12pt (Word usa half-points)
+  const SZ_HD = 24;    // 12pt negrito para títulos de seção
+  const SZ_TITLE = 24; // 12pt negrito para cabeçalho
+  const SP = 60;       // espaçamento normal entre parágrafos
+  const SP_HD = 60;    // espaçamento após títulos
+  const LINE = 240;    // altura de uma linha em branco (~12pt × 20 = 240 twips)
 
   function tr(text, opts = {}) {
     return new TextRun({ text, font: FONT, size: SZ, ...opts });
@@ -2048,7 +2048,7 @@ async function exportDocx(state, patientName, examDate) {
                 children: [
                   new Paragraph({
                     spacing: { after: 0 },
-                    children: [tr(s.label, { bold: !!s.header })],
+                    children: [tr(s.label)],  // item 1: sem negrito
                   }),
                 ],
               }),
@@ -2075,9 +2075,13 @@ async function exportDocx(state, patientName, examDate) {
   function paraText(text) {
     const upper = text === text.toUpperCase() && /[A-Z\u00C0-\u00DA]/.test(text) && !text.startsWith("-");
     return new Paragraph({
-      spacing: { after: upper ? SP_HD : SP },
-      children: [tr(text, { bold: upper, size: upper ? SZ_HD : SZ })],
+      spacing: { after: SP },
+      children: [tr(text, { bold: upper })],
     });
+  }
+
+  function emptyLine() {
+    return new Paragraph({ children: [], spacing: { after: LINE } });
   }
 
   function blockToParagraphs(lines, member) {
@@ -2108,16 +2112,20 @@ async function exportDocx(state, patientName, examDate) {
   function buildSectionChildren(block) {
     const sc = [];
     const memberTitle = `MAPEAMENTO VENOSO DO MEMBRO INFERIOR ${SIDE_LABEL[block.side]}`;
+
+    // Cabeçalho + item 2: linha em branco após o título
     sc.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: SP },
+        spacing: { after: 0 },
         children: [
-          tr("ECODOPPLER COLORIDO \u2014 ", { bold: true, size: SZ_TITLE }),
-          tr(memberTitle, { bold: true, size: SZ_TITLE }),
+          tr("ECODOPPLER COLORIDO \u2014 ", { bold: true }),
+          tr(memberTitle, { bold: true }),
         ],
       })
     );
+    sc.push(emptyLine()); // item 2: linha em branco após título
+
     if (patientName && patientName.trim()) {
       sc.push(new Paragraph({
         spacing: { after: SP },
@@ -2126,22 +2134,30 @@ async function exportDocx(state, patientName, examDate) {
     }
     if (examDate && examDate.trim()) {
       sc.push(new Paragraph({
-        spacing: { after: SP },
+        spacing: { after: 0 },
         children: [tr("Data: ", { bold: true }), tr(examDate.trim())],
       }));
+      sc.push(emptyLine()); // item 2: linha em branco após data
     }
+
     sc.push(new Paragraph({
-      spacing: { after: SP_HD },
+      spacing: { after: SP },
       children: [tr("Avalia\u00e7\u00e3o anat\u00f4mica e hemodin\u00e2mica dos sistemas venosos profundo e superficial.")],
     }));
-    // anatomico: pular linha 0 (MEMBRO INFERIOR X) e linha 1 (vazia)
+
+    // Seção anatômica (pular "MEMBRO INFERIOR X" e linha vazia)
     sc.push(...blockToParagraphs(block.anatomico.slice(2), block.member));
+
+    // item 3: linha em branco antes do DOPPLER
+    sc.push(emptyLine());
     sc.push(...blockToParagraphs(block.doppler, block.member));
+
+    // item 3: linha em branco antes da CONCLUSÃO
+    sc.push(emptyLine());
     sc.push(new Paragraph({
-      spacing: { before: SP, after: SP_HD },
-      children: [tr("CONCLUS\u00c3O", { bold: true, size: SZ_HD })],
+      spacing: { after: SP },
+      children: [tr("CONCLUS\u00c3O", { bold: true })],
     }));
-    // conclusao: pular linha 0 (MEMBRO INFERIOR X) e linha 1 (vazia)
     sc.push(...blockToParagraphs(block.conclusao.slice(2), block.member));
     return sc;
   }
@@ -2155,7 +2171,7 @@ async function exportDocx(state, patientName, examDate) {
   }));
 
   const doc = new Document({
-    styles: { default: { document: { run: { font: FONT, size: SZ } } } },
+    styles: { default: { document: { run: { font: FONT, size: 24 } } } },
     sections,
   });
 
@@ -2202,12 +2218,16 @@ export default function App() {
     }));
   };
 
-  const resetAll = () => {
-    if (!window.confirm("Limpar todos os dados preenchidos e começar um novo laudo?")) return;
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const resetAll = () => setConfirmReset(true);
+
+  const doReset = () => {
     setState({ D: defaultMemberState(), E: defaultMemberState() });
     setPatientName("");
     setExamDate(todayBR());
     setExamDateISO(new Date().toISOString().split("T")[0]);
+    setConfirmReset(false);
   };
 
   const reportLines = useMemo(() => {
@@ -2544,6 +2564,61 @@ export default function App() {
             <Download size={14} />
             {exporting ? "Gerando..." : "Baixar .docx"}
           </button>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO — substitui window.confirm */}
+      {confirmReset && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={() => setConfirmReset(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: COLORS.panel,
+              border: `1px solid ${COLORS.borderLight}`,
+              borderRadius: 12,
+              padding: 24,
+              width: 280,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>
+              Novo laudo
+            </div>
+            <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 20, lineHeight: 1.5 }}>
+              Limpar todos os dados e começar um novo laudo?
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setConfirmReset(false)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 8,
+                  border: `1px solid ${COLORS.borderLight}`,
+                  background: "transparent", color: COLORS.textMuted,
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={doReset}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 8,
+                  border: "none",
+                  background: COLORS.accent, color: "#06231F",
+                  fontSize: 13, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
