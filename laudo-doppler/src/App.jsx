@@ -17,21 +17,21 @@ import {
 const SIDE_LABEL = { D: "DIREITO", E: "ESQUERDO" };
 
 const SEGMENTS_MAGNA = [
-  { key: "croca", label: "Croça" },
-  { key: "coxaProx", label: "Coxa Proximal" },
-  { key: "coxaMedia", label: "Média" },
-  { key: "coxaDistal", label: "Distal" },
-  { key: "joelho", label: "Joelho" },
-  { key: "pernaProx", label: "Perna Proximal" },
-  { key: "pernaMedia", label: "Média" },
-  { key: "pernaDistal", label: "Distal" },
+  { key: "croca",     label: "Croça",         header: true  },
+  { key: "coxaProx",  label: "Coxa Proximal",  header: true  },
+  { key: "coxaMedia", label: "Média",           indent: true  },
+  { key: "coxaDistal",label: "Distal",          indent: true  },
+  { key: "joelho",    label: "Joelho",          header: true  },
+  { key: "pernaProx", label: "Perna Proximal",  header: true  },
+  { key: "pernaMedia",label: "Média",           indent: true  },
+  { key: "pernaDistal",label: "Distal",         indent: true  },
 ];
 
 const SEGMENTS_PARVA = [
-  { key: "croca", label: "Croça" },
-  { key: "pernaProx", label: "Perna Proximal" },
-  { key: "pernaMedia", label: "Média" },
-  { key: "pernaDistal", label: "Distal" },
+  { key: "croca",     label: "Croça",         header: true  },
+  { key: "pernaProx", label: "Perna Proximal", header: true  },
+  { key: "pernaMedia",label: "Média",          indent: true  },
+  { key: "pernaDistal",label: "Distal",        indent: true  },
 ];
 
 const SEGMENT_LOCATION_OPTIONS = [
@@ -974,23 +974,32 @@ function DiameterTable({ segments, values, onChange }) {
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 90px",
-        gap: "4px 10px",
         marginTop: 10,
         marginBottom: 4,
         background: COLORS.panelAlt,
-        padding: 10,
         borderRadius: 8,
         border: `1px solid ${COLORS.border}`,
+        overflow: "hidden",
       }}
     >
       {segments.map((s) => (
-        <React.Fragment key={s.key}>
+        <div
+          key={s.key}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 90px",
+            gap: 10,
+            padding: "5px 10px",
+            background: s.header ? COLORS.panelAlt : "transparent",
+            borderBottom: `1px solid ${COLORS.border}`,
+          }}
+        >
           <div
             style={{
               fontSize: 12.5,
-              color: COLORS.textMuted,
+              color: s.header ? COLORS.text : COLORS.textMuted,
+              fontWeight: s.header ? 600 : 400,
+              paddingLeft: s.indent ? 20 : 0,
               display: "flex",
               alignItems: "center",
             }}
@@ -1003,7 +1012,7 @@ function DiameterTable({ segments, values, onChange }) {
             suffix="mm"
             width="100%"
           />
-        </React.Fragment>
+        </div>
       ))}
     </div>
   );
@@ -1865,19 +1874,33 @@ function MemberForm({ side, data, update }) {
    PREVIEW DO LAUDO (texto)
    ============================================================ */
 
+function renderDiamRow(s, value) {
+  const label = s.header
+    ? <strong>{s.label}</strong>
+    : <span style={{ paddingLeft: 16, display: "block" }}>{s.label}</span>;
+  return (
+    <tr key={s.key}>
+      <td style={{
+        ...previewTdLabel,
+        fontWeight: s.header ? 600 : 400,
+        color: s.header ? "#E7ECF5" : COLORS.textMuted,
+        paddingLeft: s.indent ? 22 : 10,
+      }}>
+        {s.label}
+      </td>
+      <td style={previewTdValue}>{value}</td>
+    </tr>
+  );
+}
+
 function renderLineWithTable(line, member, key) {
   if (line === "__TABLE_MAGNA__") {
     return (
       <table key={key} style={previewTableStyle}>
         <tbody>
-          {SEGMENTS_MAGNA.map((s) => (
-            <tr key={s.key}>
-              <td style={previewTdLabel}>{s.label}</td>
-              <td style={previewTdValue}>
-                {member.magnaDiametros[s.key] !== "" ? `${member.magnaDiametros[s.key]} mm` : "---"}
-              </td>
-            </tr>
-          ))}
+          {SEGMENTS_MAGNA.map((s) =>
+            renderDiamRow(s, member.magnaDiametros[s.key] !== "" ? `${member.magnaDiametros[s.key]} mm` : "---")
+          )}
         </tbody>
       </table>
     );
@@ -1886,14 +1909,9 @@ function renderLineWithTable(line, member, key) {
     return (
       <table key={key} style={previewTableStyle}>
         <tbody>
-          {SEGMENTS_PARVA.map((s) => (
-            <tr key={s.key}>
-              <td style={previewTdLabel}>{s.label}</td>
-              <td style={previewTdValue}>
-                {member.parvaDiametros[s.key] !== "" ? `${member.parvaDiametros[s.key]} mm` : "---"}
-              </td>
-            </tr>
-          ))}
+          {SEGMENTS_PARVA.map((s) =>
+            renderDiamRow(s, member.parvaDiametros[s.key] !== "" ? `${member.parvaDiametros[s.key]} mm` : "---")
+          )}
         </tbody>
       </table>
     );
@@ -2002,11 +2020,17 @@ async function exportDocx(state, patientName, examDate) {
   const title = reportTitle(state);
 
   const FONT = "Helvetica Neue";
+  const SZ = 16;
+  const SZ_HD = 18;
+  const SZ_TITLE = 20;
+  const SP = 40;
+  const SP_HD = 60;
+
   function tr(text, opts = {}) {
-    return new TextRun({ text, font: FONT, ...opts });
+    return new TextRun({ text, font: FONT, size: SZ, ...opts });
   }
 
-  const border = { style: BorderStyle.SINGLE, size: 2, color: "AAAAAA" };
+  const border = { style: BorderStyle.SINGLE, size: 1, color: "AAAAAA" };
   const borders = { top: border, bottom: border, left: border, right: border };
 
   function diamTable(segments, values, fillEmpty = false) {
@@ -2019,21 +2043,25 @@ async function exportDocx(state, patientName, examDate) {
               new TableCell({
                 borders,
                 width: { size: 35, type: WidthType.PERCENTAGE },
-                shading: { fill: "EFEFEF" },
-                margins: { top: 60, bottom: 60, left: 100, right: 100 },
+                shading: { fill: s.indent ? "F5F5F5" : "E8E8E8" },
+                margins: { top: 30, bottom: 30, left: s.indent ? 280 : 80, right: 80 },
                 children: [
-                  new Paragraph({ children: [tr(s.label, { size: 20 })] }),
+                  new Paragraph({
+                    spacing: { after: 0 },
+                    children: [tr(s.label, { bold: !!s.header })],
+                  }),
                 ],
               }),
               new TableCell({
                 borders,
                 width: { size: 15, type: WidthType.PERCENTAGE },
                 shading: { fill: "FFFFFF" },
-                margins: { top: 60, bottom: 60, left: 100, right: 100 },
+                margins: { top: 30, bottom: 30, left: 80, right: 80 },
                 children: [
                   new Paragraph({
+                    spacing: { after: 0 },
                     children: [
-                      tr(values[s.key] !== "" ? `${values[s.key]} mm` : (fillEmpty ? "---" : ""), { size: 20 }),
+                      tr(values[s.key] !== "" ? `${values[s.key]} mm` : (fillEmpty ? "---" : "")),
                     ],
                   }),
                 ],
@@ -2044,11 +2072,11 @@ async function exportDocx(state, patientName, examDate) {
     });
   }
 
-  function paraText(text, opts = {}) {
-    const upper = text === text.toUpperCase() && /[A-ZÀ-Ú]/.test(text) && !text.startsWith("-");
+  function paraText(text) {
+    const upper = text === text.toUpperCase() && /[A-Z\u00C0-\u00DA]/.test(text) && !text.startsWith("-");
     return new Paragraph({
-      spacing: { after: 100 },
-      children: [tr(text, { bold: upper || opts.bold, size: opts.size || 20 })],
+      spacing: { after: upper ? SP_HD : SP },
+      children: [tr(text, { bold: upper, size: upper ? SZ_HD : SZ })],
     });
   }
 
@@ -2057,14 +2085,14 @@ async function exportDocx(state, patientName, examDate) {
     lines.forEach((line) => {
       if (line === "__TABLE_MAGNA__") {
         try { out.push(diamTable(SEGMENTS_MAGNA, member.magnaDiametros, true)); }
-        catch(e) { out.push(new Paragraph({ children: [tr("[tabela safena magna]", { size: 20 })] })); }
-        out.push(new Paragraph({ children: [], spacing: { after: 80 } }));
+        catch(e) { out.push(new Paragraph({ children: [tr("[tabela safena magna]")] })); }
+        out.push(new Paragraph({ children: [], spacing: { after: SP } }));
       } else if (line === "__TABLE_PARVA__") {
         try { out.push(diamTable(SEGMENTS_PARVA, member.parvaDiametros)); }
-        catch(e) { out.push(new Paragraph({ children: [tr("[tabela safena parva]", { size: 20 })] })); }
-        out.push(new Paragraph({ children: [], spacing: { after: 80 } }));
+        catch(e) { out.push(new Paragraph({ children: [tr("[tabela safena parva]")] })); }
+        out.push(new Paragraph({ children: [], spacing: { after: SP } }));
       } else if (line === "") {
-        out.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+        out.push(new Paragraph({ children: [], spacing: { after: SP } }));
       } else {
         out.push(paraText(line));
       }
@@ -2072,110 +2100,63 @@ async function exportDocx(state, patientName, examDate) {
     return out;
   }
 
-  const children = [];
+  const pageProps = {
+    size: { width: 12240, height: 15840 },
+    margin: { top: 720, right: 720, bottom: 720, left: 720 },
+  };
 
-  // ── Cabeçalho centralizado ──────────────────────────────────────────────
-  // "ECODOPPLER COLORIDO | MAPEAMENTO VENOSO DO MEMBRO INFERIOR DIREITO"
-  // Se couber em 1 linha (unilateral), fica assim.
-  // Se bilateral, divide em 2: linha 1 = "ECODOPPLER COLORIDO", linha 2 = título.
-  const isBilateral = title.includes("MEMBROS INFERIORES");
-  if (isBilateral) {
-    children.push(
+  function buildSectionChildren(block) {
+    const sc = [];
+    const memberTitle = `MAPEAMENTO VENOSO DO MEMBRO INFERIOR ${SIDE_LABEL[block.side]}`;
+    sc.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 0 },
-        children: [tr("ECODOPPLER COLORIDO", { bold: true, size: 24 })],
-      })
-    );
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 160 },
-        children: [tr(title, { bold: true, size: 22 })],
-      })
-    );
-  } else {
-    // unilateral: tudo numa linha só
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 160 },
+        spacing: { after: SP },
         children: [
-          tr("ECODOPPLER COLORIDO — ", { bold: true, size: 22 }),
-          tr(title, { bold: true, size: 22 }),
+          tr("ECODOPPLER COLORIDO \u2014 ", { bold: true, size: SZ_TITLE }),
+          tr(memberTitle, { bold: true, size: SZ_TITLE }),
         ],
       })
     );
+    if (patientName && patientName.trim()) {
+      sc.push(new Paragraph({
+        spacing: { after: SP },
+        children: [tr("Paciente: ", { bold: true }), tr(patientName.trim())],
+      }));
+    }
+    if (examDate && examDate.trim()) {
+      sc.push(new Paragraph({
+        spacing: { after: SP },
+        children: [tr("Data: ", { bold: true }), tr(examDate.trim())],
+      }));
+    }
+    sc.push(new Paragraph({
+      spacing: { after: SP_HD },
+      children: [tr("Avalia\u00e7\u00e3o anat\u00f4mica e hemodin\u00e2mica dos sistemas venosos profundo e superficial.")],
+    }));
+    // anatomico: pular linha 0 (MEMBRO INFERIOR X) e linha 1 (vazia)
+    sc.push(...blockToParagraphs(block.anatomico.slice(2), block.member));
+    sc.push(...blockToParagraphs(block.doppler, block.member));
+    sc.push(new Paragraph({
+      spacing: { before: SP, after: SP_HD },
+      children: [tr("CONCLUS\u00c3O", { bold: true, size: SZ_HD })],
+    }));
+    // conclusao: pular linha 0 (MEMBRO INFERIOR X) e linha 1 (vazia)
+    sc.push(...blockToParagraphs(block.conclusao.slice(2), block.member));
+    return sc;
   }
 
-  if (patientName && patientName.trim()) {
-    children.push(
-      new Paragraph({
-        spacing: { after: 80 },
-        children: [
-          tr("Paciente: ", { bold: true, size: 20 }),
-          tr(patientName.trim(), { size: 20 }),
-        ],
-      })
-    );
-  }
-  if (examDate && examDate.trim()) {
-    children.push(
-      new Paragraph({
-        spacing: { after: 80 },
-        children: [
-          tr("Data: ", { bold: true, size: 20 }),
-          tr(examDate.trim(), { size: 20 }),
-        ],
-      })
-    );
-  }
-  children.push(
-    new Paragraph({
-      spacing: { after: 200 },
-      children: [
-        tr(
-          "Avaliação anatômica e hemodinâmica dos sistemas venosos profundo e superficial.",
-          { size: 20 }
-        ),
-      ],
-    })
-  );
-
-  blocks.forEach((b) => {
-    children.push(...blockToParagraphs(b.anatomico, b.member));
-  });
-  blocks.forEach((b) => {
-    children.push(...blockToParagraphs(b.doppler, b.member));
-  });
-
-  children.push(
-    new Paragraph({
-      spacing: { before: 120, after: 100 },
-      children: [tr("CONCLUSÃO", { bold: true, size: 22 })],
-    })
-  );
-  blocks.forEach((b) => {
-    children.push(...blockToParagraphs(b.conclusao, b.member));
-  });
+  const sections = blocks.map((block, idx) => ({
+    properties: {
+      page: pageProps,
+      ...(idx > 0 ? { type: "nextPage" } : {}),
+    },
+    children: buildSectionChildren(block),
+  }));
 
   const doc = new Document({
-    styles: {
-      default: {
-        document: { run: { font: FONT, size: 20 } },
-      },
-    },
-    sections: [
-      {
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 },
-          },
-        },
-        children,
-      },
-    ],
+    styles: { default: { document: { run: { font: FONT, size: SZ } } } },
+    sections,
   });
 
   const blob = await Packer.toBlob(doc);
