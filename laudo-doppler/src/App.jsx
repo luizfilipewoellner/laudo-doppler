@@ -2238,7 +2238,24 @@ export default function App() {
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push("Avaliação anatômica e hemodinâmica dos sistemas venosos profundo e superficial.", "");
     blocks.forEach((b) => {
-      b.anatomico.forEach((l) => lines.push(l === "__TABLE_MAGNA__" || l === "__TABLE_PARVA__" ? "" : l));
+      b.anatomico.forEach((l) => {
+        if (l === "__TABLE_MAGNA__") {
+          SEGMENTS_MAGNA.forEach((s) => {
+            const val = b.member.magnaDiametros[s.key];
+            lines.push(`${s.label}: ${val !== "" ? val + " mm" : "---"}`);
+          });
+        } else if (l === "__TABLE_PARVA__") {
+          const hasData = SEGMENTS_PARVA.some((s) => b.member.parvaDiametros[s.key] !== "");
+          if (hasData) {
+            SEGMENTS_PARVA.forEach((s) => {
+              const val = b.member.parvaDiametros[s.key];
+              lines.push(`${s.label}: ${val !== "" ? val + " mm" : "---"}`);
+            });
+          }
+        } else {
+          lines.push(l);
+        }
+      });
       lines.push("");
     });
     blocks.forEach((b) => {
@@ -2253,13 +2270,99 @@ export default function App() {
     return lines;
   }, [state, patientName, examDate]);
 
+  // Gera HTML rico com tabelas para copiar no Word/Pages
+  const buildReportHTML = useCallback(() => {
+    const blocks = buildFullReportBlocks(state);
+    const title = reportTitle(state);
+
+    const tStyle = `border-collapse:collapse;margin:4px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const tdBase = `border:1px solid #999;padding:3px 8px;font-size:12pt;font-family:Helvetica Neue,Arial,sans-serif;`;
+    const tdLabel = `${tdBase}background:#E8E8E8;min-width:120px;`;
+    const tdLabelIndent = `${tdBase}background:#F5F5F5;min-width:120px;padding-left:20px;`;
+    const tdVal = `${tdBase}min-width:60px;`;
+
+    function buildTable(segments, values, fillEmpty) {
+      const rows = segments.map((s) => {
+        const val = values[s.key];
+        const valTxt = val !== "" ? `${val} mm` : (fillEmpty ? "---" : "");
+        const labelStyle = s.indent ? tdLabelIndent : tdLabel;
+        return `<tr><td style="${labelStyle}">${s.label}</td><td style="${tdVal}">${valTxt}</td></tr>`;
+      }).join("");
+      return `<table style="${tStyle}">${rows}</table>`;
+    }
+
+    const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const boldStyle = `${pStyle}font-weight:bold;`;
+
+    function linesToHTML(lines, member) {
+      return lines.map((l) => {
+        if (l === "__TABLE_MAGNA__") {
+          return buildTable(SEGMENTS_MAGNA, member.magnaDiametros, true);
+        }
+        if (l === "__TABLE_PARVA__") {
+          const hasData = SEGMENTS_PARVA.some((s) => member.parvaDiametros[s.key] !== "");
+          if (!hasData) return "";
+          return buildTable(SEGMENTS_PARVA, member.parvaDiametros, false);
+        }
+        if (l === "") return `<p style="${pStyle}">&nbsp;</p>`;
+        const upper = l === l.toUpperCase() && /[A-ZÀ-Ú]/.test(l) && !l.startsWith("-");
+        return `<p style="${upper ? boldStyle : pStyle}">${l.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</p>`;
+      }).join("");
+    }
+
+    let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
+    html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO — ${title}</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
+    if (examDate.trim()) {
+      html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    }
+    html += `<p style="${pStyle}">Avaliação anatômica e hemodinâmica dos sistemas venosos profundo e superficial.</p>`;
+
+    blocks.forEach((b) => {
+      html += linesToHTML(b.anatomico.slice(2), b.member);
+    });
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    blocks.forEach((b) => {
+      html += linesToHTML(b.doppler, b.member);
+    });
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    html += `<p style="${boldStyle}">CONCLUSÃO</p>`;
+    blocks.forEach((b) => {
+      html += linesToHTML(b.conclusao.slice(2), b.member);
+    });
+    html += `</div>`;
+    return html;
+  }, [state, patientName, examDate]);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(reportLines.join("\n"));
+      const html = buildReportHTML();
+      const text = reportLines.join("\n");
+      // Tenta copiar HTML + texto simultaneamente (funciona no Chrome/Edge)
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        // Fallback para browsers que não suportam ClipboardItem
+        await navigator.clipboard.writeText(text);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      // fallback silencioso
+      // Fallback final: só texto
+      try {
+        await navigator.clipboard.writeText(reportLines.join("\n"));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } catch (e2) {
+        console.error("Erro ao copiar:", e2);
+      }
     }
   };
 
