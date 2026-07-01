@@ -1931,22 +1931,30 @@ function renderLineWithTable(line, member, key) {
   );
 }
 
+const PREVIEW_FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const PREVIEW_SIZE = "12pt";
+
 const previewTableStyle = {
   borderCollapse: "collapse",
-  margin: "6px 0 10px 0",
-  fontSize: 12.5,
+  margin: "4px 0 8px 0",
+  fontSize: PREVIEW_SIZE,
+  fontFamily: PREVIEW_FONT,
 };
 const previewTdLabel = {
   border: `1px solid ${COLORS.borderLight}`,
-  padding: "4px 10px",
+  padding: "3px 8px",
   color: COLORS.textMuted,
   background: COLORS.panelAlt,
+  fontFamily: PREVIEW_FONT,
+  fontSize: PREVIEW_SIZE,
 };
 const previewTdValue = {
   border: `1px solid ${COLORS.borderLight}`,
-  padding: "4px 14px",
+  padding: "3px 12px",
   color: COLORS.text,
   minWidth: 60,
+  fontFamily: PREVIEW_FONT,
+  fontSize: PREVIEW_SIZE,
 };
 
 function ReportPreview({ state, patientName, examDate }) {
@@ -1963,7 +1971,7 @@ function ReportPreview({ state, patientName, examDate }) {
 
   let k = 0;
   return (
-    <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+    <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>{title}</div>
       {patientName && patientName.trim() && (
