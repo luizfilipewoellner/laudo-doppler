@@ -2101,7 +2101,7 @@ async function exportDocx(state, patientName, examDate) {
   }
 
   function emptyLine() {
-    return new Paragraph({ children: [], spacing: { after: LINE } });
+    return new Paragraph({ children: [], spacing: { after: 0 } });
   }
 
   function blockToParagraphs(lines, member) {
@@ -2136,13 +2136,14 @@ async function exportDocx(state, patientName, examDate) {
     sc.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: SP },
+        spacing: { after: 0 },
         children: [
           tr("ECODOPPLER COLORIDO \u2014 ", { bold: true }),
           tr(memberTitle, { bold: true }),
         ],
       })
     );
+    sc.push(emptyLine());
 
     if (patientName && patientName.trim()) {
       sc.push(new Paragraph({
@@ -2152,9 +2153,10 @@ async function exportDocx(state, patientName, examDate) {
     }
     if (examDate && examDate.trim()) {
       sc.push(new Paragraph({
-        spacing: { after: SP },
+        spacing: { after: 0 },
         children: [tr("Data: ", { bold: true }), tr(examDate.trim())],
       }));
+      sc.push(emptyLine());
     }
 
     sc.push(new Paragraph({

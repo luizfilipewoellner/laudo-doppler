@@ -1314,10 +1314,10 @@ async function exportDocx(state, patientName, examDate) {
     return new Paragraph({ spacing: { after: SP }, children: [tr(text, { bold: upper })] });
   }
   function emptyLine() {
-    return new Paragraph({ children: [], spacing: { after: LINE } });
+    return new Paragraph({ children: [], spacing: { after: 0 } });
   }
   function blockToParagraphs(lines) {
-    return lines.map((line) => (line === "" ? new Paragraph({ children: [], spacing: { after: SP } }) : paraText(line)));
+    return lines.map((line) => (line === "" ? new Paragraph({ children: [], spacing: { after: 0 } }) : paraText(line)));
   }
 
   const pageProps = {
@@ -1351,11 +1351,6 @@ async function exportDocx(state, patientName, examDate) {
     children.push(emptyLine());
   });
 
-  children.push(
-    new Paragraph({
-      children: [new PageBreak()],
-    })
-  );
   children.push(new Paragraph({ spacing: { after: SP }, children: [tr("CONCLUSÃO", { bold: true })] }));
   blocks.forEach((b) => {
     children.push(...blockToParagraphs(b.conclusao));
