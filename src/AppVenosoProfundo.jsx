@@ -1296,15 +1296,13 @@ function ReportPreview({ state, patientName, examDate }) {
    ============================================================ */
 
 async function exportDocx(state, patientName, examDate) {
-  const { Document, Packer, Paragraph, TextRun, AlignmentType, PageBreak } = await import("docx");
+  const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
 
   const blocks = buildFullReportBlocks(state);
-  const title = reportTitle(state);
 
   const FONT = "Helvetica Neue";
   const SZ = 24; // 12pt
   const SP = 60;
-  const LINE = 240;
 
   function tr(text, opts = {}) {
     return new TextRun({ text, font: FONT, size: SZ, ...opts });
@@ -1325,41 +1323,55 @@ async function exportDocx(state, patientName, examDate) {
     margin: { top: 720, right: 720, bottom: 720, left: 720 },
   };
 
-  const children = [];
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [tr("ECO DOPPLER COLORIDO \u2014 ", { bold: true }), tr(title, { bold: true })],
-    })
-  );
-  children.push(emptyLine());
+  function buildSectionChildren(block) {
+    const children = [];
+    const memberTitle = `SISTEMA VENOSO PROFUNDO DO MEMBRO INFERIOR ${SIDE_LABEL[block.side]}`;
 
-  if (patientName && patientName.trim()) {
-    children.push(new Paragraph({ spacing: { after: SP }, children: [tr("Paciente: ", { bold: true }), tr(patientName.trim())] }));
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
+        children: [tr("ECO DOPPLER COLORIDO \u2014 ", { bold: true }), tr(memberTitle, { bold: true })],
+      })
+    );
+    children.push(emptyLine());
+
+    if (patientName && patientName.trim()) {
+      children.push(new Paragraph({ spacing: { after: SP }, children: [tr("Paciente: ", { bold: true }), tr(patientName.trim())] }));
+    }
+    if (examDate && examDate.trim()) {
+      children.push(new Paragraph({ spacing: { after: 0 }, children: [tr("Data: ", { bold: true }), tr(examDate.trim())] }));
+      children.push(emptyLine());
+    }
+    children.push(new Paragraph({ spacing: { after: SP }, children: [tr(introTexto(state))] }));
+    children.push(emptyLine());
+
+    // Conteúdo anatômico (mantém o cabeçalho "MEMBRO INFERIOR X")
+    children.push(...blockToParagraphs(block.anatomico));
+    children.push(emptyLine());
+
+    // "DOPPLER: ..." com espaço antes, e o próximo trecho (refluxo) direto na sequência, sem linha em branco
+    children.push(paraText(block.doppler[0]));
+    children.push(...blockToParagraphs(block.doppler.slice(2)));
+    children.push(emptyLine());
+
+    children.push(new Paragraph({ spacing: { after: SP }, children: [tr("CONCLUSÃO", { bold: true })] }));
+    children.push(...blockToParagraphs(block.conclusao.slice(2)));
+
+    return children;
   }
-  if (examDate && examDate.trim()) {
-    children.push(new Paragraph({ spacing: { after: 0 }, children: [tr("Data: ", { bold: true }), tr(examDate.trim())] }));
-    children.push(emptyLine());
-  }
-  children.push(new Paragraph({ spacing: { after: SP }, children: [tr(introTexto(state))] }));
-  children.push(emptyLine());
 
-  blocks.forEach((b) => {
-    children.push(...blockToParagraphs(b.anatomico));
-    children.push(...blockToParagraphs(b.doppler));
-    children.push(emptyLine());
-  });
-
-  children.push(new Paragraph({ spacing: { after: SP }, children: [tr("CONCLUSÃO", { bold: true })] }));
-  blocks.forEach((b) => {
-    children.push(...blockToParagraphs(b.conclusao));
-    children.push(emptyLine());
-  });
+  const sections = blocks.map((block, idx) => ({
+    properties: {
+      page: pageProps,
+      ...(idx > 0 ? { type: "nextPage" } : {}),
+    },
+    children: buildSectionChildren(block),
+  }));
 
   const doc = new Document({
     styles: { default: { document: { run: { font: FONT, size: 24 } } } },
-    sections: [{ properties: { page: pageProps }, children }],
+    sections,
   });
 
   const blob = await Packer.toBlob(doc);
