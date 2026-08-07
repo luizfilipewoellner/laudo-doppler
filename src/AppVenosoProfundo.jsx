@@ -1262,7 +1262,7 @@ function ReportPreview({ state, patientName, examDate }) {
   let k = 0;
   return (
     <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECO DOPPLER COLORIDO</div>
+      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>{title}</div>
       {patientName && patientName.trim() && (
         <div style={{ color: "#C7D2E4", marginBottom: 2 }}>
@@ -1331,7 +1331,7 @@ async function exportDocx(state, patientName, examDate) {
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 0 },
-        children: [tr("ECO DOPPLER COLORIDO \u2014 ", { bold: true }), tr(memberTitle, { bold: true })],
+        children: [tr("ECODOPPLER COLORIDO \u2014 ", { bold: true }), tr(memberTitle, { bold: true })],
       })
     );
     children.push(emptyLine());
@@ -1422,7 +1422,7 @@ export default function AppVenosoProfundo() {
   const reportLines = useMemo(() => {
     const blocks = buildFullReportBlocks(state);
     const title = reportTitle(state);
-    const lines = ["ECO DOPPLER COLORIDO", title, ""];
+    const lines = ["ECODOPPLER COLORIDO", title, ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(introTexto(state), "");
