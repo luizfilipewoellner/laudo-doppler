@@ -1962,14 +1962,111 @@ export default function AppCarotidasVertebrais() {
     return lines;
   }, [state, patientName, examDate, obsTireoide, obsBatimentos]);
 
+  const buildReportHTML = useCallback(() => {
+    const blocks = buildFullReportBlocks(state);
+
+    const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const boldStyle = `${pStyle}font-weight:bold;`;
+    const underlineStyle = `${pStyle}font-weight:bold;text-decoration:underline;`;
+    const tStyle = `border-collapse:collapse;margin:4px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const tdBase = `border:1px solid #999;padding:3px 8px;font-size:12pt;font-family:Helvetica Neue,Arial,sans-serif;`;
+    const tdLabel = `${tdBase}background:#E8E8E8;min-width:220px;`;
+    const tdVal = `${tdBase}min-width:70px;`;
+
+    function buildCimtTableHTML(item) {
+      const rows = [
+        `<tr><td style="${tdLabel}">Segmento distal da artéria carótida comum</td><td style="${tdVal}">${item.distalACC || "__"} mm</td></tr>`,
+        `<tr><td style="${tdLabel}">Bifurcação carotídea</td><td style="${tdVal}">${item.bifurcacao || "__"} mm</td></tr>`,
+      ].join("");
+      return `<table style="${tStyle}">${rows}</table>`;
+    }
+
+    function itemToHTML(item) {
+      if (typeof item !== "string") {
+        if (item && item.type === "cimtTable") return buildCimtTableHTML(item);
+        return "";
+      }
+      if (item === "") return `<p style="${pStyle}">&nbsp;</p>`;
+      if (item.startsWith("[") && item.endsWith("]")) {
+        return `<p style="${underlineStyle}">${item.slice(1, -1)}</p>`;
+      }
+      const upper = item === item.toUpperCase() && /[A-ZÀ-Ú]/.test(item) && !item.startsWith("-");
+      return `<p style="${upper ? boldStyle : pStyle}">${item.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`;
+    }
+    function linesToHTML(lines) {
+      return lines.map(itemToHTML).join("");
+    }
+
+    let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
+    html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO</p>`;
+    html += `<p style="${boldStyle}text-align:center;">AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
+    if (examDate.trim()) {
+      html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    }
+    html += `<p style="${pStyle}">VASOS ESTUDADOS: Territórios Carotídeos e Vértebro-Basilares extra-cranianos, utilizando critérios anatômicos e hemodinâmicos em modo B, doppler colorido e análise espectral das velocidades de fluxo nas artérias carótidas e vertebrais (Velocidade Sistólica de Pico e Velocidade Diastólica Final).</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+
+    getActiveSides(state).forEach((s) => {
+      const m = state[s];
+      html += `<p style="${pStyle}">DOPPLER ${SIDE_LABEL[s]} — C.Comum: ${velCell(m, "velACCsist", "velACCdiast") || "\u2014"} | C.Externa: ${
+        velCell(m, "velACEsist", "velACEdiast") || "\u2014"
+      } | C.Interna: ${velCell(m, "velACIsist", "velACIdiast") || "\u2014"} | Vertebral: ${
+        velCell(m, "velVertSist", "velVertdiast") || "\u2014"
+      }</p>`;
+    });
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    html += `<p style="${boldStyle}">IMPRESSÃO DIAGNÓSTICA</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+
+    blocks.forEach((b) => {
+      html += `<p style="${boldStyle}">${b.header}</p>`;
+      html += linesToHTML(b.carotideo);
+      html += linesToHTML(b.vertebral);
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    });
+
+    if (anyCimt(state)) {
+      html += `<p style="${pStyle}">* Valor de referência da medida do complexo médio-intimal (&lt; 50 anos: &gt; 0,8 mm = espessamento).</p>`;
+      html += `<p style="${pStyle}">* Valor de referência da medida do complexo médio-intimal (\u2265 50 anos: \u2265 1,0 mm = espessamento).</p>`;
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    }
+    if (obsTireoide) html += `<p style="${pStyle}">* Obs.: Alterações na morfologia da glândula tireoide.</p>`;
+    if (obsBatimentos) html += `<p style="${pStyle}">* Obs.: Batimentos cardíacos irregulares durante o exame.</p>`;
+    getExtraObsLines(state).forEach((l) => {
+      html += `<p style="${pStyle}">${l}</p>`;
+    });
+
+    html += `</div>`;
+    return html;
+  }, [state, patientName, examDate, obsTireoide, obsBatimentos]);
+
   const handleCopy = async () => {
     try {
+      const html = buildReportHTML();
       const text = reportLines.join("\n");
-      await navigator.clipboard.writeText(text);
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      console.error("Erro ao copiar:", e);
+      try {
+        await navigator.clipboard.writeText(reportLines.join("\n"));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } catch (e2) {
+        console.error("Erro ao copiar:", e2);
+      }
     }
   };
 

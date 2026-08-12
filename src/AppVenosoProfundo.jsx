@@ -1422,7 +1422,7 @@ export default function AppVenosoProfundo() {
   const reportLines = useMemo(() => {
     const blocks = buildFullReportBlocks(state);
     const title = reportTitle(state);
-    const lines = ["ECODOPPLER COLORIDO", title, ""];
+    const lines = [`ECODOPPLER COLORIDO \u2014 ${title}`, ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(introTexto(state), "");
@@ -1439,14 +1439,73 @@ export default function AppVenosoProfundo() {
     return lines;
   }, [state, patientName, examDate]);
 
+  const buildReportHTML = useCallback(() => {
+    const blocks = buildFullReportBlocks(state);
+    const title = reportTitle(state);
+
+    const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const boldStyle = `${pStyle}font-weight:bold;`;
+
+    function linesToHTML(lines) {
+      return lines.map((l) => {
+        if (l === "") return `<p style="${pStyle}">&nbsp;</p>`;
+        const upper = l === l.toUpperCase() && /[A-ZÀ-Ú]/.test(l) && !l.startsWith("-");
+        return `<p style="${upper ? boldStyle : pStyle}">${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`;
+      }).join("");
+    }
+
+    let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
+    html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO — ${title}</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
+    if (examDate.trim()) {
+      html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    }
+    html += `<p style="${pStyle}">${introTexto(state)}</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+
+    blocks.forEach((b) => {
+      html += linesToHTML(b.anatomico);
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+      html += linesToHTML(b.doppler);
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    });
+
+    html += `<p style="${boldStyle}">CONCLUSÃO</p>`;
+    blocks.forEach((b) => {
+      html += linesToHTML(b.conclusao);
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    });
+
+    html += `</div>`;
+    return html;
+  }, [state, patientName, examDate]);
+
   const handleCopy = async () => {
     try {
+      const html = buildReportHTML();
       const text = reportLines.join("\n");
-      await navigator.clipboard.writeText(text);
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      console.error("Erro ao copiar:", e);
+      try {
+        await navigator.clipboard.writeText(reportLines.join("\n"));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } catch (e2) {
+        console.error("Erro ao copiar:", e2);
+      }
     }
   };
 
