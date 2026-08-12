@@ -1580,12 +1580,12 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
     const colW2 = 2000;
     const row1 = new TableRow({
       children: [
-        cell("Segmento distal da artéria carótida comum", { width: colW1 }),
+        cell("Segmento distal da artéria carótida comum", { width: colW1, label: true }),
         cell(`${item.distalACC || "__"} mm`, { width: colW2 }),
       ],
     });
     const row2 = new TableRow({
-      children: [cell("Bifurcação carotídea", { width: colW1 }), cell(`${item.bifurcacao || "__"} mm`, { width: colW2 })],
+      children: [cell("Bifurcação carotídea", { width: colW1, label: true }), cell(`${item.bifurcacao || "__"} mm`, { width: colW2 })],
     });
     return new Table({
       columnWidths: [colW1, colW2],
@@ -1626,8 +1626,8 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
   function cell(text, opts = {}) {
     return new TableCell({
       width: { size: opts.width || 2000, type: WidthType.DXA },
-      shading: opts.header ? { type: ShadingType.CLEAR, fill: "1F4A45" } : undefined,
-      children: [new Paragraph({ children: [tr(text, { bold: !!opts.header, color: opts.header ? "FFFFFF" : undefined })] })],
+      shading: opts.header || opts.label ? { type: ShadingType.CLEAR, fill: "E8E8E8" } : undefined,
+      children: [new Paragraph({ children: [tr(text, { bold: !!opts.header })] })],
     });
   }
 
@@ -1646,7 +1646,7 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
       const m = state[s];
       return new TableRow({
         children: [
-          cell(SIDE_LABEL[s] === "DIREITA" ? "Direita" : "Esquerda", { width: colW }),
+          cell(SIDE_LABEL[s] === "DIREITA" ? "Direita" : "Esquerda", { width: colW, label: true }),
           cell(velCell(m, "velACCsist", "velACCdiast") || "\u2014", { width: colW }),
           cell(velCell(m, "velACEsist", "velACEdiast") || "\u2014", { width: colW }),
           cell(velCell(m, "velACIsist", "velACIdiast") || "\u2014", { width: colW }),
