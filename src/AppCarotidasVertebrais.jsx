@@ -1430,7 +1430,7 @@ function renderLine(item, key) {
   if (line === "") return <div key={key} style={{ height: 8 }} />;
   if (line.startsWith("[") && line.endsWith("]")) {
     return (
-      <div key={key} style={{ color: COLORS.accent, fontWeight: 600, textDecoration: "underline", marginTop: 6, marginBottom: 2 }}>
+      <div key={key} style={{ color: COLORS.accent, fontWeight: 600, marginTop: 6, marginBottom: 2 }}>
         {line.slice(1, -1)}
       </div>
     );
@@ -1488,8 +1488,7 @@ function ReportPreview({ state, patientName, examDate, obsTireoide, obsBatimento
   let k = 0;
   return (
     <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</div>
+      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</div>
       {patientName && patientName.trim() && (
         <div style={{ color: "#C7D2E4", marginBottom: 2 }}>
           <strong style={{ color: COLORS.text }}>Paciente:</strong> {patientName.trim()}
@@ -1556,15 +1555,25 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
   function tr(text, opts = {}) {
     return new TextRun({ text, font: FONT, size: SZ, ...opts });
   }
-  function paraText(text) {
+  function paraText(text, opts = {}) {
     if (text.startsWith("[") && text.endsWith("]")) {
-      return new Paragraph({ spacing: { before: 80, after: SP }, children: [tr(text.slice(1, -1), { bold: true, underline: {} })] });
+      return new Paragraph({
+        spacing: { before: 80, after: SP },
+        keepLines: true,
+        keepNext: !!opts.keepNext,
+        children: [tr(text.slice(1, -1), { bold: true })],
+      });
     }
     const upper = text === text.toUpperCase() && /[A-Z\u00C0-\u00DA]/.test(text) && !text.startsWith("-");
-    return new Paragraph({ spacing: { after: SP }, children: [tr(text, { bold: upper })] });
+    return new Paragraph({
+      spacing: { after: SP },
+      keepLines: true,
+      keepNext: !!opts.keepNext,
+      children: [tr(text, { bold: upper })],
+    });
   }
-  function emptyLine() {
-    return new Paragraph({ children: [], spacing: { after: 0 } });
+  function emptyLine(opts = {}) {
+    return new Paragraph({ children: [], spacing: { after: 0 }, keepNext: !!opts.keepNext });
   }
   function buildCimtTable(item) {
     const colW1 = 6300;
@@ -1584,13 +1593,28 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
       rows: [row1, row2],
     });
   }
-  function blockToParagraphs(lines) {
+  function blockToParagraphs(lines, opts = {}) {
     return lines.map((item) => {
       if (typeof item !== "string") {
         if (item && item.type === "cimtTable") return buildCimtTable(item);
-        return emptyLine();
+        return emptyLine(opts);
       }
-      return item === "" ? emptyLine() : paraText(item);
+      return item === "" ? emptyLine(opts) : paraText(item, opts);
+    });
+  }
+  // Constrói os nós (parágrafos/tabelas) de um lado inteiro (cabeçalho + carotídeo + vertebral),
+  // marcando "keepNext" em todos menos no último — isso "cola" o bloco inteiro, então se não
+  // couber tudo na página atual, o Word empurra o lado inteiro (ex.: Esquerda) para a próxima
+  // página, em vez de cortar no meio do texto.
+  function buildSideNodes(b) {
+    const items = [b.header, ...b.carotideo, ...b.vertebral];
+    return items.map((item, idx) => {
+      const keepNext = idx < items.length - 1;
+      if (typeof item !== "string") {
+        if (item && item.type === "cimtTable") return buildCimtTable(item);
+        return emptyLine({ keepNext });
+      }
+      return item === "" ? emptyLine({ keepNext }) : paraText(item, { keepNext });
     });
   }
 
@@ -1642,15 +1666,8 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [tr("ECODOPPLER COLORIDO", { bold: true })],
-    })
-  );
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
       spacing: { after: SP },
-      children: [tr("AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA", { bold: true })],
+      children: [tr("ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA", { bold: true })],
     })
   );
   children.push(emptyLine());
@@ -1681,12 +1698,9 @@ async function exportDocx(state, patientName, examDate, obsTireoide, obsBatiment
   children.push(emptyLine());
 
   children.push(new Paragraph({ spacing: { after: SP }, children: [tr("IMPRESSÃO DIAGNÓSTICA", { bold: true })] }));
-  children.push(emptyLine());
 
   blocks.forEach((b) => {
-    children.push(paraText(b.header));
-    children.push(...blockToParagraphs(b.carotideo));
-    children.push(...blockToParagraphs(b.vertebral));
+    children.push(...buildSideNodes(b));
     children.push(emptyLine());
   });
 
@@ -1915,24 +1929,26 @@ export default function AppCarotidasVertebrais() {
 
   const reportLines = useMemo(() => {
     const blocks = buildFullReportBlocks(state);
-    const lines = ["ECODOPPLER COLORIDO", "AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA", ""];
+    const lines = ["ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA", ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(
       "VASOS ESTUDADOS: Territórios Carotídeos e Vértebro-Basilares extra-cranianos, utilizando critérios anatômicos e hemodinâmicos em modo B, doppler colorido e análise espectral das velocidades de fluxo nas artérias carótidas e vertebrais (Velocidade Sistólica de Pico e Velocidade Diastólica Final).",
       ""
     );
+    lines.push("DOPPLER: Velocidades de fluxo nas artérias carótidas e vertebrais (Pico Sist. / Vel. Diast. Final em cm/s):");
     getActiveSides(state).forEach((s) => {
       const m = state[s];
+      const label = SIDE_LABEL[s] === "DIREITA" ? "Direita" : "Esquerda";
       lines.push(
-        `DOPPLER ${SIDE_LABEL[s]} \u2014 C.Comum: ${velCell(m, "velACCsist", "velACCdiast") || "\u2014"} | C.Externa: ${
+        `${label} \u2014 Carótida Comum: ${velCell(m, "velACCsist", "velACCdiast") || "\u2014"} | Carótida Externa: ${
           velCell(m, "velACEsist", "velACEdiast") || "\u2014"
-        } | C.Interna: ${velCell(m, "velACIsist", "velACIdiast") || "\u2014"} | Vertebral: ${
+        } | Carótida Interna: ${velCell(m, "velACIsist", "velACIdiast") || "\u2014"} | Vertebral: ${
           velCell(m, "velVertSist", "velVertdiast") || "\u2014"
         }`
       );
     });
-    lines.push("", "IMPRESSÃO DIAGNÓSTICA", "");
+    lines.push("", "IMPRESSÃO DIAGNÓSTICA");
     const itemToText = (item) => {
       if (typeof item === "string") return [item];
       if (item && item.type === "cimtTable") {
@@ -1967,7 +1983,6 @@ export default function AppCarotidasVertebrais() {
 
     const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
     const boldStyle = `${pStyle}font-weight:bold;`;
-    const underlineStyle = `${pStyle}font-weight:bold;text-decoration:underline;`;
     const tStyle = `border-collapse:collapse;margin:4px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
     const tdBase = `border:1px solid #999;padding:3px 8px;font-size:12pt;font-family:Helvetica Neue,Arial,sans-serif;`;
     const tdLabel = `${tdBase}background:#E8E8E8;min-width:220px;`;
@@ -1981,6 +1996,17 @@ export default function AppCarotidasVertebrais() {
       return `<table style="${tStyle}">${rows}</table>`;
     }
 
+    function buildVelTableHTML() {
+      const sides = getActiveSides(state);
+      const headRow = `<tr><td style="${tdLabel}"></td><td style="${tdVal}"><b>Carótida Comum</b></td><td style="${tdVal}"><b>Carótida Externa</b></td><td style="${tdVal}"><b>Carótida Interna</b></td><td style="${tdVal}"><b>Vertebral</b></td></tr>`;
+      const rows = sides.map((s) => {
+        const m = state[s];
+        const label = SIDE_LABEL[s] === "DIREITA" ? "Direita" : "Esquerda";
+        return `<tr><td style="${tdLabel}">${label}</td><td style="${tdVal}">${velCell(m, "velACCsist", "velACCdiast") || "\u2014"}</td><td style="${tdVal}">${velCell(m, "velACEsist", "velACEdiast") || "\u2014"}</td><td style="${tdVal}">${velCell(m, "velACIsist", "velACIdiast") || "\u2014"}</td><td style="${tdVal}">${velCell(m, "velVertSist", "velVertdiast") || "\u2014"}</td></tr>`;
+      }).join("");
+      return `<table style="${tStyle}">${headRow}${rows}</table>`;
+    }
+
     function itemToHTML(item) {
       if (typeof item !== "string") {
         if (item && item.type === "cimtTable") return buildCimtTableHTML(item);
@@ -1988,7 +2014,7 @@ export default function AppCarotidasVertebrais() {
       }
       if (item === "") return `<p style="${pStyle}">&nbsp;</p>`;
       if (item.startsWith("[") && item.endsWith("]")) {
-        return `<p style="${underlineStyle}">${item.slice(1, -1)}</p>`;
+        return `<p style="${boldStyle}">${item.slice(1, -1)}</p>`;
       }
       const upper = item === item.toUpperCase() && /[A-ZÀ-Ú]/.test(item) && !item.startsWith("-");
       return `<p style="${upper ? boldStyle : pStyle}">${item.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`;
@@ -1998,8 +2024,7 @@ export default function AppCarotidasVertebrais() {
     }
 
     let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
-    html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO</p>`;
-    html += `<p style="${boldStyle}text-align:center;">AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</p>`;
+    html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
     if (examDate.trim()) {
@@ -2009,17 +2034,10 @@ export default function AppCarotidasVertebrais() {
     html += `<p style="${pStyle}">VASOS ESTUDADOS: Territórios Carotídeos e Vértebro-Basilares extra-cranianos, utilizando critérios anatômicos e hemodinâmicos em modo B, doppler colorido e análise espectral das velocidades de fluxo nas artérias carótidas e vertebrais (Velocidade Sistólica de Pico e Velocidade Diastólica Final).</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
 
-    getActiveSides(state).forEach((s) => {
-      const m = state[s];
-      html += `<p style="${pStyle}">DOPPLER ${SIDE_LABEL[s]} — C.Comum: ${velCell(m, "velACCsist", "velACCdiast") || "\u2014"} | C.Externa: ${
-        velCell(m, "velACEsist", "velACEdiast") || "\u2014"
-      } | C.Interna: ${velCell(m, "velACIsist", "velACIdiast") || "\u2014"} | Vertebral: ${
-        velCell(m, "velVertSist", "velVertdiast") || "\u2014"
-      }</p>`;
-    });
+    html += `<p style="${pStyle}"><b>DOPPLER:</b> Velocidades de fluxo nas artérias carótidas e vertebrais (Pico Sist. / Vel. Diast. Final em cm/s):</p>`;
+    html += buildVelTableHTML();
     html += `<p style="${pStyle}">&nbsp;</p>`;
     html += `<p style="${boldStyle}">IMPRESSÃO DIAGNÓSTICA</p>`;
-    html += `<p style="${pStyle}">&nbsp;</p>`;
 
     blocks.forEach((b) => {
       html += `<p style="${boldStyle}">${b.header}</p>`;

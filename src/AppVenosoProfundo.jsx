@@ -1428,12 +1428,14 @@ export default function AppVenosoProfundo() {
     lines.push(introTexto(state), "");
     blocks.forEach((b) => {
       b.anatomico.forEach((l) => lines.push(l));
-      b.doppler.forEach((l) => lines.push(l));
+      lines.push(b.doppler[0]);
+      b.doppler.slice(2).forEach((l) => lines.push(l));
       lines.push("");
     });
     lines.push("CONCLUSÃO", "");
     blocks.forEach((b) => {
-      b.conclusao.forEach((l) => lines.push(l));
+      lines.push(b.conclusao[0]);
+      b.conclusao.slice(2).forEach((l) => lines.push(l));
       lines.push("");
     });
     return lines;
@@ -1468,13 +1470,13 @@ export default function AppVenosoProfundo() {
     blocks.forEach((b) => {
       html += linesToHTML(b.anatomico);
       html += `<p style="${pStyle}">&nbsp;</p>`;
-      html += linesToHTML(b.doppler);
+      html += linesToHTML([b.doppler[0], ...b.doppler.slice(2)]);
       html += `<p style="${pStyle}">&nbsp;</p>`;
     });
 
     html += `<p style="${boldStyle}">CONCLUSÃO</p>`;
     blocks.forEach((b) => {
-      html += linesToHTML(b.conclusao);
+      html += linesToHTML([b.conclusao[0], ...b.conclusao.slice(2)]);
       html += `<p style="${pStyle}">&nbsp;</p>`;
     });
 
