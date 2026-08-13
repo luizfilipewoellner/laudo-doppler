@@ -2120,14 +2120,75 @@ export default function AppArterialMMII() {
     return lines;
   }, [state, patientName, examDate]);
 
+  const buildReportHTML = useCallback(() => {
+    const blocks = buildFullReportBlocks(state);
+    const conclusao = buildConclusaoSection(state);
+
+    const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
+    const boldStyle = `${pStyle}font-weight:bold;`;
+
+    function itemToHTML(item) {
+      if (item === "") return `<p style="${pStyle}">&nbsp;</p>`;
+      if (item.startsWith("[") && item.endsWith("]")) {
+        return `<p style="${boldStyle}">${item.slice(1, -1)}</p>`;
+      }
+      const upper = item === item.toUpperCase() && /[A-ZÀ-Ú]/.test(item) && !item.startsWith("-");
+      return `<p style="${upper ? boldStyle : pStyle}">${item.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`;
+    }
+    function linesToHTML(lines) {
+      return lines.map(itemToHTML).join("");
+    }
+
+    let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
+    html += `<p style="${boldStyle}text-align:center;">${buildTituloLinhas(state)}</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+    if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
+    if (examDate.trim()) {
+      html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    }
+    html += `<p style="${pStyle}">${buildIntroLinha(state)}</p>`;
+    html += `<p style="${pStyle}">&nbsp;</p>`;
+
+    blocks.forEach((b) => {
+      html += `<p style="${boldStyle}">${b.header}</p>`;
+      html += linesToHTML(b.femoral);
+      html += linesToHTML(b.distal);
+      html += `<p style="${pStyle}">&nbsp;</p>`;
+    });
+
+    html += linesToHTML(conclusao);
+    if (conclusao.length > 0) html += `<p style="${pStyle}">&nbsp;</p>`;
+    html += linesToHTML(getExtraObsLines(state));
+
+    html += `</div>`;
+    return html;
+  }, [state, patientName, examDate]);
+
   const handleCopy = async () => {
     try {
+      const html = buildReportHTML();
       const text = reportLines.join("\n");
-      await navigator.clipboard.writeText(text);
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      console.error("Erro ao copiar:", e);
+      try {
+        await navigator.clipboard.writeText(reportLines.join("\n"));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } catch (e2) {
+        console.error("Erro ao copiar:", e2);
+      }
     }
   };
 
