@@ -337,7 +337,7 @@ function defaultPonte() {
 
 function defaultSideState() {
   return {
-    incluir: true,
+    incluir: false,
     femParede: "regular",
     femMorfologia: "normal",
     femAchados: [],
