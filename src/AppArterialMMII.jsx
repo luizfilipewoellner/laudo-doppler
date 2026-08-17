@@ -2083,7 +2083,7 @@ export default function AppArterialMMII() {
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({ D: defaultSideState(), E: defaultSideState() });
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(null); // null | "all" | "D" | "E"
   const [exporting, setExporting] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -2101,13 +2101,26 @@ export default function AppArterialMMII() {
     setConfirmReset(false);
   };
 
-  const reportLines = useMemo(() => {
-    const blocks = buildFullReportBlocks(state);
-    const conclusao = buildConclusaoSection(state);
-    const lines = [buildTituloLinhas(state), ""];
+  const stateForSide = useCallback(
+    (onlySide) =>
+      onlySide
+        ? {
+            ...state,
+            D: onlySide === "D" ? state.D : { ...state.D, incluir: false },
+            E: onlySide === "E" ? state.E : { ...state.E, incluir: false },
+          }
+        : state,
+    [state]
+  );
+
+  const buildReportLines = useCallback((onlySide) => {
+    const st = stateForSide(onlySide);
+    const blocks = buildFullReportBlocks(st);
+    const conclusao = buildConclusaoSection(st);
+    const lines = [buildTituloLinhas(st), ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
-    lines.push(buildIntroLinha(state), "");
+    lines.push(buildIntroLinha(st), "");
     blocks.forEach((b) => {
       lines.push(b.header);
       b.femoral.forEach((l) => lines.push(l));
@@ -2116,13 +2129,14 @@ export default function AppArterialMMII() {
     });
     conclusao.forEach((l) => lines.push(l));
     if (conclusao.length > 0) lines.push("");
-    getExtraObsLines(state).forEach((l) => lines.push(l));
+    getExtraObsLines(st).forEach((l) => lines.push(l));
     return lines;
-  }, [state, patientName, examDate]);
+  }, [stateForSide, patientName, examDate]);
 
-  const buildReportHTML = useCallback(() => {
-    const blocks = buildFullReportBlocks(state);
-    const conclusao = buildConclusaoSection(state);
+  const buildReportHTML = useCallback((onlySide) => {
+    const st = stateForSide(onlySide);
+    const blocks = buildFullReportBlocks(st);
+    const conclusao = buildConclusaoSection(st);
 
     const pStyle = `margin:2px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
     const boldStyle = `${pStyle}font-weight:bold;`;
@@ -2140,14 +2154,14 @@ export default function AppArterialMMII() {
     }
 
     let html = `<div style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;">`;
-    html += `<p style="${boldStyle}text-align:center;">${buildTituloLinhas(state)}</p>`;
+    html += `<p style="${boldStyle}text-align:center;">${buildTituloLinhas(st)}</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
     if (examDate.trim()) {
       html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
       html += `<p style="${pStyle}">&nbsp;</p>`;
     }
-    html += `<p style="${pStyle}">${buildIntroLinha(state)}</p>`;
+    html += `<p style="${pStyle}">${buildIntroLinha(st)}</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
 
     blocks.forEach((b) => {
@@ -2159,16 +2173,17 @@ export default function AppArterialMMII() {
 
     html += linesToHTML(conclusao);
     if (conclusao.length > 0) html += `<p style="${pStyle}">&nbsp;</p>`;
-    html += linesToHTML(getExtraObsLines(state));
+    html += linesToHTML(getExtraObsLines(st));
 
     html += `</div>`;
     return html;
-  }, [state, patientName, examDate]);
+  }, [stateForSide, patientName, examDate]);
 
-  const handleCopy = async () => {
+  const handleCopy = async (onlySide) => {
+    const key = onlySide || "all";
     try {
-      const html = buildReportHTML();
-      const text = reportLines.join("\n");
+      const html = buildReportHTML(onlySide);
+      const text = buildReportLines(onlySide).join("\n");
       if (window.ClipboardItem) {
         await navigator.clipboard.write([
           new ClipboardItem({
@@ -2179,13 +2194,13 @@ export default function AppArterialMMII() {
       } else {
         await navigator.clipboard.writeText(text);
       }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1800);
     } catch (e) {
       try {
-        await navigator.clipboard.writeText(reportLines.join("\n"));
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
+        await navigator.clipboard.writeText(buildReportLines(onlySide).join("\n"));
+        setCopied(key);
+        setTimeout(() => setCopied(null), 1800);
       } catch (e2) {
         console.error("Erro ao copiar:", e2);
       }
@@ -2400,6 +2415,7 @@ export default function AppArterialMMII() {
           borderTop: `1px solid ${COLORS.border}`,
           padding: "10px 14px calc(10px + env(safe-area-inset-bottom))",
           display: "flex",
+          flexWrap: "wrap",
           gap: 8,
           zIndex: 20,
         }}
@@ -2421,9 +2437,9 @@ export default function AppArterialMMII() {
           {mobilePreview ? "Editar" : "Visualizar"}
         </button>
         <button
-          onClick={handleCopy}
+          onClick={() => handleCopy()}
           style={{
-            flex: 1,
+            flex: "1 1 110px",
             padding: "11px 10px",
             borderRadius: 9,
             border: `1px solid ${COLORS.borderLight}`,
@@ -2438,14 +2454,60 @@ export default function AppArterialMMII() {
             gap: 6,
           }}
         >
-          {copied ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
-          {copied ? "Copiado" : "Copiar texto"}
+          {copied === "all" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+          {copied === "all" ? "Copiado" : state.D.incluir && state.E.incluir ? "Copiar Bilateral" : state.D.incluir ? "Copiar MID" : "Copiar MIE"}
         </button>
+        {state.D.incluir && state.E.incluir && (
+          <>
+            <button
+              onClick={() => handleCopy("D")}
+              style={{
+                flex: "1 1 110px",
+                padding: "11px 10px",
+                borderRadius: 9,
+                border: `1px solid ${COLORS.borderLight}`,
+                background: "transparent",
+                color: COLORS.text,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              {copied === "D" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+              {copied === "D" ? "Copiado" : "Copiar MID"}
+            </button>
+            <button
+              onClick={() => handleCopy("E")}
+              style={{
+                flex: "1 1 110px",
+                padding: "11px 10px",
+                borderRadius: 9,
+                border: `1px solid ${COLORS.borderLight}`,
+                background: "transparent",
+                color: COLORS.text,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              {copied === "E" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+              {copied === "E" ? "Copiado" : "Copiar MIE"}
+            </button>
+          </>
+        )}
         <button
           onClick={handleExport}
           disabled={exporting}
           style={{
-            flex: 1,
+            flex: "1 1 110px",
             padding: "11px 10px",
             borderRadius: 9,
             border: "none",

@@ -2221,7 +2221,7 @@ export default function AppMapeamento() {
     D: defaultMemberState(),
     E: defaultMemberState(),
   });
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(null); // null | "all" | "D" | "E"
   const [exporting, setExporting] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
 
@@ -2248,9 +2248,9 @@ export default function AppMapeamento() {
     setConfirmReset(false);
   };
 
-  const reportLines = useMemo(() => {
-    const blocks = buildFullReportBlocks(state);
-    const title = reportTitle(state);
+  const buildReportLines = useCallback((onlySide) => {
+    const blocks = buildFullReportBlocks(state).filter((b) => !onlySide || b.side === onlySide);
+    const title = onlySide ? `MAPEAMENTO VENOSO DO MEMBRO INFERIOR ${SIDE_LABEL[onlySide]}` : reportTitle(state);
     const lines = ["ECODOPPLER COLORIDO", title, ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
@@ -2295,9 +2295,9 @@ export default function AppMapeamento() {
   }, [state, patientName, examDate]);
 
   // Gera HTML rico com tabelas para copiar no Word/Pages
-  const buildReportHTML = useCallback(() => {
-    const blocks = buildFullReportBlocks(state);
-    const title = reportTitle(state);
+  const buildReportHTML = useCallback((onlySide) => {
+    const blocks = buildFullReportBlocks(state).filter((b) => !onlySide || b.side === onlySide);
+    const title = onlySide ? `MAPEAMENTO VENOSO DO MEMBRO INFERIOR ${SIDE_LABEL[onlySide]}` : reportTitle(state);
 
     const tStyle = `border-collapse:collapse;margin:4px 0;font-family:Helvetica Neue,Arial,sans-serif;font-size:12pt;`;
     const tdBase = `border:1px solid #999;padding:3px 8px;font-size:12pt;font-family:Helvetica Neue,Arial,sans-serif;`;
@@ -2367,10 +2367,11 @@ export default function AppMapeamento() {
     return html;
   }, [state, patientName, examDate]);
 
-  const handleCopy = async () => {
+  const handleCopy = async (onlySide) => {
+    const key = onlySide || "all";
     try {
-      const html = buildReportHTML();
-      const text = reportLines.join("\n");
+      const html = buildReportHTML(onlySide);
+      const text = buildReportLines(onlySide).join("\n");
       // Tenta copiar HTML + texto simultaneamente (funciona no Chrome/Edge)
       if (window.ClipboardItem) {
         await navigator.clipboard.write([
@@ -2383,14 +2384,14 @@ export default function AppMapeamento() {
         // Fallback para browsers que não suportam ClipboardItem
         await navigator.clipboard.writeText(text);
       }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1800);
     } catch (e) {
       // Fallback final: só texto
       try {
-        await navigator.clipboard.writeText(reportLines.join("\n"));
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
+        await navigator.clipboard.writeText(buildReportLines(onlySide).join("\n"));
+        setCopied(key);
+        setTimeout(() => setCopied(null), 1800);
       } catch (e2) {
         console.error("Erro ao copiar:", e2);
       }
@@ -2634,6 +2635,7 @@ export default function AppMapeamento() {
             borderTop: `1px solid ${COLORS.border}`,
             padding: "10px 14px calc(10px + env(safe-area-inset-bottom))",
             display: "flex",
+            flexWrap: "wrap",
             gap: 8,
             zIndex: 20,
           }}
@@ -2655,9 +2657,9 @@ export default function AppMapeamento() {
             {mobilePreview ? "Editar" : "Visualizar"}
           </button>
           <button
-            onClick={handleCopy}
+            onClick={() => handleCopy()}
             style={{
-              flex: 1,
+              flex: "1 1 110px",
               padding: "11px 10px",
               borderRadius: 9,
               border: `1px solid ${COLORS.borderLight}`,
@@ -2672,14 +2674,60 @@ export default function AppMapeamento() {
               gap: 6,
             }}
           >
-            {copied ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
-            {copied ? "Copiado" : "Copiar texto"}
+            {copied === "all" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+            {copied === "all" ? "Copiado" : state.D.incluir && state.E.incluir ? "Copiar Bilateral" : state.D.incluir ? "Copiar MID" : "Copiar MIE"}
           </button>
+          {state.D.incluir && state.E.incluir && (
+            <>
+              <button
+                onClick={() => handleCopy("D")}
+                style={{
+                  flex: "1 1 110px",
+                  padding: "11px 10px",
+                  borderRadius: 9,
+                  border: `1px solid ${COLORS.borderLight}`,
+                  background: "transparent",
+                  color: COLORS.text,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                {copied === "D" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+                {copied === "D" ? "Copiado" : "Copiar MID"}
+              </button>
+              <button
+                onClick={() => handleCopy("E")}
+                style={{
+                  flex: "1 1 110px",
+                  padding: "11px 10px",
+                  borderRadius: 9,
+                  border: `1px solid ${COLORS.borderLight}`,
+                  background: "transparent",
+                  color: COLORS.text,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                {copied === "E" ? <Check size={14} color={COLORS.accent} /> : <Copy size={14} />}
+                {copied === "E" ? "Copiado" : "Copiar MIE"}
+              </button>
+            </>
+          )}
           <button
             onClick={handleExport}
             disabled={exporting}
             style={{
-              flex: 1,
+              flex: "1 1 110px",
               padding: "11px 10px",
               borderRadius: 9,
               border: "none",
