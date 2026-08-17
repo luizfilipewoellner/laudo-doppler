@@ -2001,10 +2001,10 @@ function ReportPreview({ state, patientName, examDate }) {
       </div>
 
       {blocks.map((b) => (
-        <div key={"anat-" + b.side}>{b.anatomico.map((l) => renderLineWithTable(l, b.member, k++))}</div>
-      ))}
-      {blocks.map((b) => (
-        <div key={"dopp-" + b.side}>{b.doppler.map((l) => renderLineWithTable(l, b.member, k++))}</div>
+        <div key={"mem-" + b.side}>
+          {b.anatomico.map((l) => renderLineWithTable(l, b.member, k++))}
+          {b.doppler.map((l) => renderLineWithTable(l, b.member, k++))}
+        </div>
       ))}
 
       <div style={{ fontWeight: 700, color: COLORS.text, marginTop: 6, marginBottom: 4 }}>
