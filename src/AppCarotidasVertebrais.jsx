@@ -540,17 +540,17 @@ function velCell(m, prefixSist, prefixDiast) {
    ============================================================ */
 
 const COLORS = {
-  bg: "#0B1220",
-  panel: "#121B2E",
-  panelAlt: "#16213A",
-  border: "#22304A",
-  borderLight: "#2C3D5C",
-  text: "#E7ECF5",
-  textMuted: "#8FA0BD",
-  accent: "#3DD6C4",
-  accentDim: "#1F4A45",
-  warn: "#F2A65A",
-  danger: "#E2654F",
+  bg: "#FDFCFA",
+  panel: "#FFFFFF",
+  panelAlt: "#F5F2EE",
+  border: "#E3DFD9",
+  borderLight: "#D8D3CB",
+  text: "#1B2942",
+  textMuted: "#5C6B85",
+  accent: "#7A2036",
+  accentDim: "#F3E3E6",
+  warn: "#B8792E",
+  danger: "#B23A3A",
 };
 
 function Section({ title, subtitle, children, defaultOpen = false, badge }) {
@@ -1413,11 +1413,11 @@ function renderLine(item, key) {
         <table key={key} style={{ borderCollapse: "collapse", fontSize: 12.5, marginTop: 2, marginBottom: 6 }}>
           <tbody>
             <tr>
-              <td style={{ padding: "3px 14px 3px 0", color: "#C7D2E4" }}>Segmento distal da artéria carótida comum</td>
+              <td style={{ padding: "3px 14px 3px 0", color: "#5C6B85" }}>Segmento distal da artéria carótida comum</td>
               <td style={{ padding: "3px 0", color: COLORS.text, fontWeight: 600 }}>{item.distalACC || "__"} mm</td>
             </tr>
             <tr>
-              <td style={{ padding: "3px 14px 3px 0", color: "#C7D2E4" }}>Bifurcação carotídea</td>
+              <td style={{ padding: "3px 14px 3px 0", color: "#5C6B85" }}>Bifurcação carotídea</td>
               <td style={{ padding: "3px 0", color: COLORS.text, fontWeight: 600 }}>{item.bifurcacao || "__"} mm</td>
             </tr>
           </tbody>
@@ -1437,7 +1437,7 @@ function renderLine(item, key) {
   }
   const upper = line === line.toUpperCase() && /[A-ZÀ-Ú]/.test(line) && !line.startsWith("-");
   return (
-    <div key={key} style={{ color: upper ? COLORS.text : "#C7D2E4", fontWeight: upper ? 700 : 400, marginBottom: 2 }}>
+    <div key={key} style={{ color: upper ? COLORS.text : "#5C6B85", fontWeight: upper ? 700 : 400, marginBottom: 2 }}>
       {line}
     </div>
   );
@@ -1462,10 +1462,10 @@ function DopplerTablePreview({ state }) {
           return (
             <tr key={s} style={{ borderTop: `1px solid ${COLORS.border}` }}>
               <td style={{ padding: "4px 6px", color: COLORS.text, fontWeight: 600 }}>{SIDE_LABEL[s].slice(0, 3)}</td>
-              <td style={{ padding: "4px 6px", color: "#C7D2E4" }}>{velCell(m, "velACCsist", "velACCdiast") || "\u2014"}</td>
-              <td style={{ padding: "4px 6px", color: "#C7D2E4" }}>{velCell(m, "velACEsist", "velACEdiast") || "\u2014"}</td>
-              <td style={{ padding: "4px 6px", color: "#C7D2E4" }}>{velCell(m, "velACIsist", "velACIdiast") || "\u2014"}</td>
-              <td style={{ padding: "4px 6px", color: "#C7D2E4" }}>{velCell(m, "velVertSist", "velVertdiast") || "\u2014"}</td>
+              <td style={{ padding: "4px 6px", color: "#5C6B85" }}>{velCell(m, "velACCsist", "velACCdiast") || "\u2014"}</td>
+              <td style={{ padding: "4px 6px", color: "#5C6B85" }}>{velCell(m, "velACEsist", "velACEdiast") || "\u2014"}</td>
+              <td style={{ padding: "4px 6px", color: "#5C6B85" }}>{velCell(m, "velACIsist", "velACIdiast") || "\u2014"}</td>
+              <td style={{ padding: "4px 6px", color: "#5C6B85" }}>{velCell(m, "velVertSist", "velVertdiast") || "\u2014"}</td>
             </tr>
           );
         })}
@@ -1490,17 +1490,17 @@ function ReportPreview({ state, patientName, examDate, obsTireoide, obsBatimento
     <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</div>
       {patientName && patientName.trim() && (
-        <div style={{ color: "#C7D2E4", marginBottom: 2 }}>
+        <div style={{ color: "#5C6B85", marginBottom: 2 }}>
           <strong style={{ color: COLORS.text }}>Paciente:</strong> {patientName.trim()}
         </div>
       )}
       {examDate && examDate.trim() && (
-        <div style={{ color: "#C7D2E4", marginBottom: 10 }}>
+        <div style={{ color: "#5C6B85", marginBottom: 10 }}>
           <strong style={{ color: COLORS.text }}>Data:</strong> {examDate.trim()}
         </div>
       )}
 
-      <div style={{ color: "#C7D2E4", marginBottom: 10 }}>
+      <div style={{ color: "#5C6B85", marginBottom: 10 }}>
         <strong style={{ color: COLORS.text }}>VASOS ESTUDADOS:</strong> Territórios Carotídeos e Vértebro-Basilares
         extra-cranianos, utilizando critérios anatômicos e hemodinâmicos em modo B, doppler colorido e análise espectral das
         velocidades de fluxo nas artérias carótidas e vertebrais (Velocidade Sistólica de Pico e Velocidade Diastólica Final).
@@ -1795,7 +1795,7 @@ function CritTable({ headers, rows, colWidths }) {
                 style={{
                   padding: "7px 8px",
                   border: `1px solid ${COLORS.border}`,
-                  color: "#C7D2E4",
+                  color: "#5C6B85",
                   whiteSpace: "pre-line",
                   fontWeight: ci === 0 ? 600 : 400,
                   verticalAlign: "top",
@@ -2115,7 +2115,7 @@ export default function AppCarotidasVertebrais() {
           position: "sticky",
           top: 0,
           zIndex: 20,
-          background: "rgba(11,18,32,0.92)",
+          background: "rgba(253,252,250,0.92)",
           backdropFilter: "blur(8px)",
           borderBottom: `1px solid ${COLORS.border}`,
           padding: "12px 16px",
@@ -2278,7 +2278,7 @@ export default function AppCarotidasVertebrais() {
           bottom: 0,
           left: 0,
           right: 0,
-          background: "rgba(11,18,32,0.97)",
+          background: "rgba(253,252,250,0.97)",
           backdropFilter: "blur(8px)",
           borderTop: `1px solid ${COLORS.border}`,
           padding: "10px 14px calc(10px + env(safe-area-inset-bottom))",
@@ -2333,7 +2333,7 @@ export default function AppCarotidasVertebrais() {
               borderRadius: 9,
               border: "none",
               background: COLORS.accent,
-              color: "#06231F",
+              color: "#FDFCFA",
               fontSize: 12.5,
               fontWeight: 700,
               cursor: exporting ? "default" : "pointer",
@@ -2406,7 +2406,7 @@ export default function AppCarotidasVertebrais() {
                   borderRadius: 8,
                   border: "none",
                   background: COLORS.accent,
-                  color: "#06231F",
+                  color: "#FDFCFA",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",

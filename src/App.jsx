@@ -16,14 +16,14 @@ import AppArterialMMII from "./AppArterialMMII";
    ============================================================ */
 
 const COLORS = {
-  bg: "#0B1220",
-  panel: "#121B2E",
-  border: "#22304A",
-  borderLight: "#2C3D5C",
-  text: "#E7ECF5",
-  textMuted: "#8FA0BD",
-  accent: "#3DD6C4",
-  accentDim: "#1F4A45",
+  bg: "#FDFCFA",
+  panel: "#FFFFFF",
+  border: "#E3DFD9",
+  borderLight: "#D8D3CB",
+  text: "#1B2942",
+  textMuted: "#5C6B85",
+  accent: "#7A2036",
+  accentDim: "#F3E3E6",
 };
 
 const TABS = [
@@ -43,7 +43,7 @@ export default function App() {
           position: "sticky",
           top: 0,
           zIndex: 30,
-          background: "rgba(11,18,32,0.97)",
+          background: "rgba(253,252,250,0.97)",
           backdropFilter: "blur(8px)",
           borderBottom: `1px solid ${COLORS.border}`,
           padding: "10px 14px",

@@ -746,17 +746,17 @@ function reportTitle(state) {
    ============================================================ */
 
 const COLORS = {
-  bg: "#0B1220",
-  panel: "#121B2E",
-  panelAlt: "#16213A",
-  border: "#22304A",
-  borderLight: "#2C3D5C",
-  text: "#E7ECF5",
-  textMuted: "#8FA0BD",
-  accent: "#3DD6C4",
-  accentDim: "#1F4A45",
-  warn: "#F2A65A",
-  danger: "#E2654F",
+  bg: "#FDFCFA",
+  panel: "#FFFFFF",
+  panelAlt: "#F5F2EE",
+  border: "#E3DFD9",
+  borderLight: "#D8D3CB",
+  text: "#1B2942",
+  textMuted: "#5C6B85",
+  accent: "#7A2036",
+  accentDim: "#F3E3E6",
+  warn: "#B8792E",
+  danger: "#B23A3A",
 };
 
 function Section({ title, subtitle, children, defaultOpen = true, badge }) {
@@ -1894,7 +1894,7 @@ function renderDiamRow(s, value) {
       <td style={{
         ...previewTdLabel,
         fontWeight: s.header ? 600 : 400,
-        color: s.header ? "#E7ECF5" : COLORS.textMuted,
+        color: s.header ? "#1B2942" : COLORS.textMuted,
         paddingLeft: s.indent ? 22 : 10,
       }}>
         {s.label}
@@ -1935,7 +1935,7 @@ function renderLineWithTable(line, member, key) {
       style={{
         fontWeight: isHeading ? 700 : 400,
         marginBottom: 4,
-        color: isHeading ? COLORS.text : "#C7D2E4",
+        color: isHeading ? COLORS.text : "#5C6B85",
       }}
     >
       {line}
@@ -1987,16 +1987,16 @@ function ReportPreview({ state, patientName, examDate }) {
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
       <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>{title}</div>
       {patientName && patientName.trim() && (
-        <div style={{ color: "#C7D2E4", marginBottom: 2 }}>
+        <div style={{ color: "#5C6B85", marginBottom: 2 }}>
           <strong style={{ color: COLORS.text }}>Paciente:</strong> {patientName.trim()}
         </div>
       )}
       {examDate && examDate.trim() && (
-        <div style={{ color: "#C7D2E4", marginBottom: 10 }}>
+        <div style={{ color: "#5C6B85", marginBottom: 10 }}>
           <strong style={{ color: COLORS.text }}>Data:</strong> {examDate.trim()}
         </div>
       )}
-      <div style={{ color: "#C7D2E4", marginBottom: 14 }}>
+      <div style={{ color: "#5C6B85", marginBottom: 14 }}>
         Avaliação anatômica e hemodinâmica dos sistemas venosos profundo e superficial.
       </div>
 
@@ -2428,7 +2428,7 @@ export default function AppMapeamento() {
           position: "sticky",
           top: 0,
           zIndex: 20,
-          background: "rgba(11,18,32,0.92)",
+          background: "rgba(253,252,250,0.92)",
           backdropFilter: "blur(8px)",
           borderBottom: `1px solid ${COLORS.border}`,
           padding: "12px 16px",
@@ -2630,7 +2630,7 @@ export default function AppMapeamento() {
             bottom: 0,
             left: 0,
             right: 0,
-            background: "rgba(11,18,32,0.97)",
+            background: "rgba(253,252,250,0.97)",
             backdropFilter: "blur(8px)",
             borderTop: `1px solid ${COLORS.border}`,
             padding: "10px 14px calc(10px + env(safe-area-inset-bottom))",
@@ -2732,7 +2732,7 @@ export default function AppMapeamento() {
               borderRadius: 9,
               border: "none",
               background: COLORS.accent,
-              color: "#06231F",
+              color: "#FDFCFA",
               fontSize: 12.5,
               fontWeight: 700,
               cursor: exporting ? "default" : "pointer",
@@ -2793,7 +2793,7 @@ export default function AppMapeamento() {
                 style={{
                   flex: 1, padding: "10px 0", borderRadius: 8,
                   border: "none",
-                  background: COLORS.accent, color: "#06231F",
+                  background: COLORS.accent, color: "#FDFCFA",
                   fontSize: 13, fontWeight: 700, cursor: "pointer",
                 }}
               >
