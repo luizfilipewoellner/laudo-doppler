@@ -1,18 +1,21 @@
 import React, { useState } from "react";
-import { Activity, GitBranch, Stethoscope, HeartPulse } from "lucide-react";
+import { Activity, GitBranch, Stethoscope, HeartPulse, Waves, ArrowUpRight } from "lucide-react";
 import AppVenosoProfundo from "./AppVenosoProfundo";
 import AppMapeamento from "./AppMapeamento";
 import AppCarotidasVertebrais from "./AppCarotidasVertebrais";
 import AppArterialMMII from "./AppArterialMMII";
+import AppVenosoCervical from "./AppVenosoCervical";
+import AppVenosoMMSS from "./AppVenosoMMSS";
 
 /* ============================================================
    CASCA COM ABAS — LAUDOS VASCULARES
    Cada laudo (Doppler Venoso Profundo / Mapeamento Venoso /
-   Carótidas e Vertebrais / Arterial de MMII) roda como um app
-   React totalmente independente, com seu próprio estado
-   (paciente, data, achados). A troca de aba não reseta nem
-   compartilha dados entre eles — cada um mantém o que já foi
-   preenchido enquanto a página não é recarregada.
+   Carótidas e Vertebrais / Arterial de MMII / Venoso Cervical /
+   Venoso Profundo MMSS) roda como um app React totalmente
+   independente, com seu próprio estado (paciente, data, achados).
+   A troca de aba não reseta nem compartilha dados entre eles —
+   cada um mantém o que já foi preenchido enquanto a página não
+   é recarregada.
    ============================================================ */
 
 const COLORS = {
@@ -31,6 +34,8 @@ const TABS = [
   { key: "mapeamento", label: "Mapeamento Venoso", icon: GitBranch, Component: AppMapeamento },
   { key: "carotidas", label: "Carótidas e Vertebrais", icon: Stethoscope, Component: AppCarotidasVertebrais },
   { key: "arterial", label: "Arterial de MMII", icon: HeartPulse, Component: AppArterialMMII },
+  { key: "cervical", label: "Venoso Cervical", icon: Waves, Component: AppVenosoCervical },
+  { key: "mmss", label: "Venoso Profundo MMSS", icon: ArrowUpRight, Component: AppVenosoMMSS },
 ];
 
 export default function App() {
