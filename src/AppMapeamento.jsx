@@ -306,6 +306,29 @@ function buildPerfurantesSection(m) {
   if (m.perfurantes.length === 0) return [];
   return ["Veias Perfurantes:", ...m.perfurantes.map(buildPerfurante)];
 }
+
+// segmentoAte / segmento podem ser string (legado) ou array
+function toArrSeg(v) {
+  return Array.isArray(v) ? v : v ? [v] : [];
+}
+
+// Ordena os trechos de refluxo pela posição anatômica (croça -> coxa -> joelho -> perna),
+// e não pela ordem em que foram adicionados na tela. Croça/difuso sempre vem primeiro
+// (é o ponto mais proximal). Para os demais, usa o segmento mais proximal referenciado.
+function sortTrechosAnatomicamente(trechos, locationOptions) {
+  const keyOf = (t) => {
+    if (t.tipo === "difuso" || t.tipo === "crocaTributaria") return -1;
+    const segs = t.tipo === "crocaSegmento" ? toArrSeg(t.segmentoAte) : toArrSeg(t.segmento);
+    const idxs = segs
+      .map((s) => locationOptions.findIndex((o) => o.value === s))
+      .filter((i) => i >= 0);
+    return idxs.length ? Math.min(...idxs) : 999;
+  };
+  return trechos
+    .map((t, originalIdx) => ({ t, originalIdx, key: keyOf(t) }))
+    .sort((a, b) => a.key - b.key || a.originalIdx - b.originalIdx)
+    .map((x) => x.t);
+}
 function buildRefluxoTrechoText(t, segLabelFn, veiaNome, idx = 0) {
   // segmentoAte e segmento podem ser string (legado) ou array
   const toArr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
@@ -369,7 +392,8 @@ function buildMagnaDoppler(m) {
     return [`Veia ${nomeVeia} sem refluxo significativo.${tromboSufixo}`];
   }
 
-  const linhasRefluxo = m.magnaRefluxos.map((t, idx) =>
+  const trechosOrdenados = sortTrechosAnatomicamente(m.magnaRefluxos, SEGMENT_LOCATION_OPTIONS);
+  const linhasRefluxo = trechosOrdenados.map((t, idx) =>
     buildRefluxoTrechoText(t, segLabel, nomeVeia, idx)
   );
   const linhaUnificada = linhasRefluxo.join(" ");
@@ -407,7 +431,8 @@ function buildParvaDoppler(m) {
     return [`Veia ${nomeVeia} sem refluxo significativo.${tromboSufixo}`];
   }
 
-  const linhasRefluxo = m.parvaRefluxos.map((t, idx) =>
+  const trechosOrdenados = sortTrechosAnatomicamente(m.parvaRefluxos, SEGMENT_LOCATION_OPTIONS_PARVA);
+  const linhasRefluxo = trechosOrdenados.map((t, idx) =>
     buildRefluxoTrechoText(t, segLabel, nomeVeia, idx)
   );
   const linhaUnificada = linhasRefluxo.join(" ");
