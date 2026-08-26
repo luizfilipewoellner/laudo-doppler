@@ -2243,7 +2243,7 @@ export default function AppMapeamento() {
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({
-    D: defaultMemberState(),
+    D: { ...defaultMemberState(), incluir: true },
     E: defaultMemberState(),
   });
   const [copied, setCopied] = useState(null); // null | "all" | "D" | "E"
@@ -2255,10 +2255,13 @@ export default function AppMapeamento() {
   }, []);
 
   const toggleSide = (side) => {
-    setState((prev) => ({
-      ...prev,
-      [side]: { ...prev[side], incluir: !prev[side].incluir },
-    }));
+    const otherSide = side === "D" ? "E" : "D";
+    const turningOff = state[side].incluir;
+    // Nunca permite desmarcar o último lado ativo — sempre sobra pelo menos um selecionado.
+    if (turningOff && !state[otherSide].incluir) return;
+    setState((prev) => ({ ...prev, [side]: { ...prev[side], incluir: !turningOff } }));
+    // Ao ligar um lado, foca nele; ao desligar o lado que estava em foco, muda o foco pro outro.
+    setActiveTab((prevTab) => (!turningOff ? side : prevTab === side ? otherSide : prevTab));
   };
 
   const [confirmReset, setConfirmReset] = useState(false);
@@ -2266,7 +2269,8 @@ export default function AppMapeamento() {
   const resetAll = () => setConfirmReset(true);
 
   const doReset = () => {
-    setState({ D: defaultMemberState(), E: defaultMemberState() });
+    setState({ D: { ...defaultMemberState(), incluir: true }, E: defaultMemberState() });
+    setActiveTab("D");
     setPatientName("");
     setExamDate(todayBR());
     setExamDateISO(new Date().toISOString().split("T")[0]);
