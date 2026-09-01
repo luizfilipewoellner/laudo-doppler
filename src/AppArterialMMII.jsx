@@ -2117,19 +2117,20 @@ export default function AppArterialMMII() {
     const st = stateForSide(onlySide);
     const blocks = buildFullReportBlocks(st);
     const conclusao = buildConclusaoSection(st);
+    const stripBrackets = (l) => (l.startsWith("[") && l.endsWith("]") ? l.slice(1, -1) : l);
     const lines = [buildTituloLinhas(st), ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
     if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(buildIntroLinha(st), "");
     blocks.forEach((b) => {
-      lines.push(b.header);
-      b.femoral.forEach((l) => lines.push(l));
-      b.distal.forEach((l) => lines.push(l));
+      lines.push(stripBrackets(b.header));
+      b.femoral.forEach((l) => lines.push(stripBrackets(l)));
+      b.distal.forEach((l) => lines.push(stripBrackets(l)));
       lines.push("");
     });
-    conclusao.forEach((l) => lines.push(l));
+    conclusao.forEach((l) => lines.push(stripBrackets(l)));
     if (conclusao.length > 0) lines.push("");
-    getExtraObsLines(st).forEach((l) => lines.push(l));
+    getExtraObsLines(st).forEach((l) => lines.push(stripBrackets(l)));
     return lines;
   }, [stateForSide, patientName, examDate]);
 

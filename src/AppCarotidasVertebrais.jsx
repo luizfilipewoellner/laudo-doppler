@@ -1950,7 +1950,10 @@ export default function AppCarotidasVertebrais() {
     });
     lines.push("", "IMPRESSÃO DIAGNÓSTICA");
     const itemToText = (item) => {
-      if (typeof item === "string") return [item];
+      if (typeof item === "string") {
+        if (item.startsWith("[") && item.endsWith("]")) return [item.slice(1, -1)];
+        return [item];
+      }
       if (item && item.type === "cimtTable") {
         return [
           `Segmento distal da artéria carótida comum: ${item.distalACC || "__"} mm`,
