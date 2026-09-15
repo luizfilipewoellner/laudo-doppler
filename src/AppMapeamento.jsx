@@ -105,7 +105,8 @@ function defaultMemberState() {
     acessoriaRefluxo: false,
 
     reticulares: false,
-    varicosas: false,
+    varizes: false,
+    telangiectasias: false,
 
     perfurantes: [],
 
@@ -267,10 +268,12 @@ function buildParvaAnatomico(m) {
   return lines;
 }
 function buildReticulares(m) {
-  if (!m.reticulares && !m.varicosas) return [];
-  if (m.reticulares && m.varicosas) return ["Observam-se veias reticulares e varicosas."];
-  if (m.reticulares) return ["Observam-se veias reticulares."];
-  return ["Observam-se veias varicosas."];
+  const partes = [];
+  if (m.reticulares) partes.push("veias reticulares");
+  if (m.varizes) partes.push("varizes");
+  if (m.telangiectasias) partes.push("telangiectasias");
+  if (partes.length === 0) return [];
+  return [`Observam-se ${listaFluida(partes)}.`];
 }
 function buildPerfurante(p) {
   const diam = fmtNum(p.diametro);
@@ -366,7 +369,7 @@ function buildRefluxoTrechoText(t, segLabelFn, veiaNome, idx = 0) {
       }
       const fonteE = FONTE_LABEL[t.escoadoPor2];
       const cmETxt = `${cmE} cm`;
-      return `${prefixo} no${plural} ${segTxt} causado (${cmCTxt}) por ${fonteC} e escoado (${cmETxt}) por ${fonteE}(s).`;
+      return `${prefixo} no${plural} ${segTxt} causado (${cmCTxt}) por ${fonteC} e escoado (${cmETxt}) por ${fonteE}.`;
     }
     default:
       return "";
@@ -604,10 +607,13 @@ function buildConclusaoPerfurantes(m) {
   return m.perfurantes.length > 0 ? ["Veias perfurantes."] : [];
 }
 function buildConclusaoReticulares(m) {
-  if (!m.reticulares && !m.varicosas) return [];
-  if (m.reticulares && m.varicosas) return ["Veias reticulares e varicosas."];
-  if (m.reticulares) return ["Veias reticulares."];
-  return ["Veias varicosas."];
+  const partes = [];
+  if (m.varizes) partes.push("varizes");
+  if (m.reticulares) partes.push("veias reticulares");
+  if (m.telangiectasias) partes.push("telangiectasias");
+  if (partes.length === 0) return [];
+  const frase = listaFluida(partes);
+  return [`${frase.charAt(0).toUpperCase()}${frase.slice(1)} (vide mapeamento).`];
 }
 function buildConclusaoTributariasMagna(m) {
   if (m.tributariasCroca !== "magna") return [];
@@ -635,8 +641,15 @@ function getTromboTexts(m, prefix, labelTipo) {
 
   const result = { magna: null, parva: null, colaterais: null };
 
+  const sortSegs = (arr) =>
+    [...arr].sort(
+      (a, b) =>
+        SEGMENT_LOCATION_OPTIONS.findIndex((o) => o.value === a) -
+        SEGMENT_LOCATION_OPTIONS.findIndex((o) => o.value === b)
+    );
+
   if (veias.includes("magna")) {
-    const segs = (m[`${prefix}Segmentos`] || []).map((s) => SEG_LABEL[s] || s);
+    const segs = sortSegs(m[`${prefix}Segmentos`] || []).map((s) => SEG_LABEL[s] || s);
     const segTxt = segs.length > 0 ? `no${segs.length > 1 ? "s segmentos" : " segmento"} ${listaFluida(segs)}` : "";
     result.magna = {
       doppler: `Veia safena magna${segTxt ? ", " + segTxt : ""}, dilatada, ${compress} e imagens de ${trombosTxt} no lúmen.`,
@@ -644,7 +657,7 @@ function getTromboTexts(m, prefix, labelTipo) {
     };
   }
   if (veias.includes("parva")) {
-    const segs = (m[`${prefix}SegmentosParva`] || []).map((s) => SEG_LABEL[s] || s);
+    const segs = sortSegs(m[`${prefix}SegmentosParva`] || []).map((s) => SEG_LABEL[s] || s);
     const segTxt = segs.length > 0 ? `no${segs.length > 1 ? "s segmentos" : " segmento"} ${listaFluida(segs)}` : "";
     result.parva = {
       doppler: `Veia safena parva${segTxt ? ", " + segTxt : ""}, dilatada, ${compress} e imagens de ${trombosTxt} no lúmen.`,
@@ -1729,19 +1742,29 @@ function MemberForm({ side, data, update }) {
         </div>
       </Section>
 
-      {/* TRIBUTÁRIAS / RETICULARES */}
-      <Section title="Tributárias da croça e veias reticulares" defaultOpen={false}>
+      {/* VARIZES / RETICULARES / TELANGIECTASIAS */}
+      <Section title="Varizes, Veias Reticulares e Telangiectasias" defaultOpen={false}>
+        <Toggle
+          checked={data.varizes}
+          onChange={(v) => set({ varizes: v })}
+          label="Varizes presentes"
+        />
         <Toggle
           checked={data.reticulares}
           onChange={(v) => set({ reticulares: v })}
           label="Veias reticulares presentes"
         />
         <Toggle
-          checked={data.varicosas}
-          onChange={(v) => set({ varicosas: v })}
-          label="Veias varicosas presentes"
+          checked={data.telangiectasias}
+          onChange={(v) => set({ telangiectasias: v })}
+          label="Telangiectasias presentes"
         />
-        <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+      </Section>
+
+      {/* ACHADOS ESPECIAIS */}
+      <Section title="Achados especiais" subtitle="tributárias da croça · circunflexa · tromboflebite" defaultOpen={false}>
+        {/* TRIBUTÁRIAS DA CROÇA */}
+        <div style={{ padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
           <Label>Veias tributárias da croça com refluxo:</Label>
           <div style={{ fontSize: 11.5, color: COLORS.textMuted, marginTop: 3, marginBottom: 6 }}>
             Magna → varizes para coxa · Parva → varizes para perna
@@ -1758,10 +1781,6 @@ function MemberForm({ side, data, update }) {
             />
           </Row>
         </div>
-      </Section>
-
-      {/* ACHADOS ESPECIAIS */}
-      <Section title="Achados especiais" subtitle="circunflexa · tromboflebite" defaultOpen={false}>
         {/* CIRCUNFLEXA */}
         <div style={{ padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
           <Toggle
@@ -2009,8 +2028,7 @@ function ReportPreview({ state, patientName, examDate }) {
   let k = 0;
   return (
     <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>{title}</div>
+      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>ECODOPPLER COLORIDO — {title}</div>
       {patientName && patientName.trim() && (
         <div style={{ color: "#5C6B85", marginBottom: 2 }}>
           <strong style={{ color: COLORS.text }}>Paciente:</strong> {patientName.trim()}
@@ -2241,6 +2259,7 @@ export default function AppMapeamento() {
   const [patientName, setPatientName] = useState("");
   const [examDate, setExamDate] = useState(todayBR());
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
+  const [includeDateOnCopy, setIncludeDateOnCopy] = useState(true);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({
     D: { ...defaultMemberState(), incluir: true },
@@ -2280,9 +2299,9 @@ export default function AppMapeamento() {
   const buildReportLines = useCallback((onlySide) => {
     const blocks = buildFullReportBlocks(state).filter((b) => !onlySide || b.side === onlySide);
     const title = onlySide ? `MAPEAMENTO VENOSO DO MEMBRO INFERIOR ${SIDE_LABEL[onlySide]}` : reportTitle(state);
-    const lines = ["ECODOPPLER COLORIDO", title, ""];
+    const lines = [`ECODOPPLER COLORIDO \u2014 ${title}`, ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
-    if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
+    if (examDate.trim() && includeDateOnCopy) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push("Avaliação anatômica e hemodinâmica dos sistemas venosos profundo e superficial.", "");
 
     blocks.forEach((b) => {
@@ -2321,7 +2340,7 @@ export default function AppMapeamento() {
     });
 
     return lines;
-  }, [state, patientName, examDate]);
+  }, [state, patientName, examDate, includeDateOnCopy]);
 
   // Gera HTML rico com tabelas para copiar no Word/Pages
   const buildReportHTML = useCallback((onlySide) => {
@@ -2367,7 +2386,7 @@ export default function AppMapeamento() {
     html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO — ${title}</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
-    if (examDate.trim()) {
+    if (examDate.trim() && includeDateOnCopy) {
       html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
       html += `<p style="${pStyle}">&nbsp;</p>`;
     }
@@ -2394,7 +2413,7 @@ export default function AppMapeamento() {
 
     html += `</div>`;
     return html;
-  }, [state, patientName, examDate]);
+  }, [state, patientName, examDate, includeDateOnCopy]);
 
   const handleCopy = async (onlySide) => {
     const key = onlySide || "all";
@@ -2669,6 +2688,27 @@ export default function AppMapeamento() {
             zIndex: 20,
           }}
         >
+          <label
+            style={{
+              flexBasis: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11.5,
+              color: COLORS.textMuted,
+              cursor: "pointer",
+              userSelect: "none",
+              marginBottom: 2,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeDateOnCopy}
+              onChange={(e) => setIncludeDateOnCopy(e.target.checked)}
+              style={{ accentColor: COLORS.accent, width: 14, height: 14 }}
+            />
+            Incluir data ao copiar texto
+          </label>
           <button
             onClick={() => setMobilePreview((v) => !v)}
             style={{

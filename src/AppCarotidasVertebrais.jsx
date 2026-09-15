@@ -1902,6 +1902,7 @@ function CriteriosModal({ onClose }) {
 export default function AppCarotidasVertebrais() {
   const [patientName, setPatientName] = useState("");
   const [examDate, setExamDate] = useState(todayBR());
+  const [includeDateOnCopy, setIncludeDateOnCopy] = useState(true);
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({ D: defaultSideState(), E: defaultSideState() });
@@ -1931,7 +1932,7 @@ export default function AppCarotidasVertebrais() {
     const blocks = buildFullReportBlocks(state);
     const lines = ["ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA", ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
-    if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
+    if (examDate.trim() && includeDateOnCopy) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(
       "VASOS ESTUDADOS: Territórios Carotídeos e Vértebro-Basilares extra-cranianos, utilizando critérios anatômicos e hemodinâmicos em modo B, doppler colorido e análise espectral das velocidades de fluxo nas artérias carótidas e vertebrais (Velocidade Sistólica de Pico e Velocidade Diastólica Final).",
       ""
@@ -1979,7 +1980,7 @@ export default function AppCarotidasVertebrais() {
     if (obsBatimentos) lines.push("* Obs.: Batimentos cardíacos irregulares durante o exame.");
     getExtraObsLines(state).forEach((l) => lines.push(l));
     return lines;
-  }, [state, patientName, examDate, obsTireoide, obsBatimentos]);
+  }, [state, patientName, examDate, obsTireoide, obsBatimentos, includeDateOnCopy]);
 
   const buildReportHTML = useCallback(() => {
     const blocks = buildFullReportBlocks(state);
@@ -2030,7 +2031,7 @@ export default function AppCarotidasVertebrais() {
     html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO - AVALIAÇÃO CÉREBRO-VASCULAR EXTRA-CRANIANA</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
-    if (examDate.trim()) {
+    if (examDate.trim() && includeDateOnCopy) {
       html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
       html += `<p style="${pStyle}">&nbsp;</p>`;
     }
@@ -2062,7 +2063,7 @@ export default function AppCarotidasVertebrais() {
 
     html += `</div>`;
     return html;
-  }, [state, patientName, examDate, obsTireoide, obsBatimentos]);
+  }, [state, patientName, examDate, obsTireoide, obsBatimentos, includeDateOnCopy]);
 
   const handleCopy = async () => {
     try {
@@ -2290,6 +2291,27 @@ export default function AppCarotidasVertebrais() {
           zIndex: 20,
         }}
       >
+        <label
+          style={{
+            flexBasis: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 11.5,
+            color: COLORS.textMuted,
+            cursor: "pointer",
+            userSelect: "none",
+            marginBottom: 2,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={includeDateOnCopy}
+            onChange={(e) => setIncludeDateOnCopy(e.target.checked)}
+            style={{ accentColor: COLORS.accent, width: 14, height: 14 }}
+          />
+          Incluir data ao copiar texto
+        </label>
         <button
           onClick={() => setMobilePreview((v) => !v)}
           style={{

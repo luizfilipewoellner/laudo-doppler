@@ -2080,6 +2080,7 @@ function CriteriosModal({ onClose }) {
 export default function AppArterialMMII() {
   const [patientName, setPatientName] = useState("");
   const [examDate, setExamDate] = useState(todayBR());
+  const [includeDateOnCopy, setIncludeDateOnCopy] = useState(true);
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({ D: defaultSideState(), E: defaultSideState() });
@@ -2120,7 +2121,7 @@ export default function AppArterialMMII() {
     const stripBrackets = (l) => (l.startsWith("[") && l.endsWith("]") ? l.slice(1, -1) : l);
     const lines = [buildTituloLinhas(st), ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
-    if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
+    if (examDate.trim() && includeDateOnCopy) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(buildIntroLinha(st), "");
     blocks.forEach((b) => {
       lines.push(stripBrackets(b.header));
@@ -2132,7 +2133,7 @@ export default function AppArterialMMII() {
     if (conclusao.length > 0) lines.push("");
     getExtraObsLines(st).forEach((l) => lines.push(stripBrackets(l)));
     return lines;
-  }, [stateForSide, patientName, examDate]);
+  }, [stateForSide, patientName, examDate, includeDateOnCopy]);
 
   const buildReportHTML = useCallback((onlySide) => {
     const st = stateForSide(onlySide);
@@ -2158,7 +2159,7 @@ export default function AppArterialMMII() {
     html += `<p style="${boldStyle}text-align:center;">${buildTituloLinhas(st)}</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
-    if (examDate.trim()) {
+    if (examDate.trim() && includeDateOnCopy) {
       html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
       html += `<p style="${pStyle}">&nbsp;</p>`;
     }
@@ -2178,7 +2179,7 @@ export default function AppArterialMMII() {
 
     html += `</div>`;
     return html;
-  }, [stateForSide, patientName, examDate]);
+  }, [stateForSide, patientName, examDate, includeDateOnCopy]);
 
   const handleCopy = async (onlySide) => {
     const key = onlySide || "all";
@@ -2421,6 +2422,27 @@ export default function AppArterialMMII() {
           zIndex: 20,
         }}
       >
+        <label
+          style={{
+            flexBasis: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 11.5,
+            color: COLORS.textMuted,
+            cursor: "pointer",
+            userSelect: "none",
+            marginBottom: 2,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={includeDateOnCopy}
+            onChange={(e) => setIncludeDateOnCopy(e.target.checked)}
+            style={{ accentColor: COLORS.accent, width: 14, height: 14 }}
+          />
+          Incluir data ao copiar texto
+        </label>
         <button
           onClick={() => setMobilePreview((v) => !v)}
           style={{

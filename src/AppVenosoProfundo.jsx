@@ -1262,8 +1262,7 @@ function ReportPreview({ state, patientName, examDate }) {
   let k = 0;
   return (
     <div style={{ fontSize: PREVIEW_SIZE, fontFamily: PREVIEW_FONT, lineHeight: 1.55 }}>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 2 }}>ECODOPPLER COLORIDO</div>
-      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>{title}</div>
+      <div style={{ fontWeight: 700, color: COLORS.text, marginBottom: 10 }}>ECODOPPLER COLORIDO — {title}</div>
       {patientName && patientName.trim() && (
         <div style={{ color: "#5C6B85", marginBottom: 2 }}>
           <strong style={{ color: COLORS.text }}>Paciente:</strong> {patientName.trim()}
@@ -1396,6 +1395,7 @@ async function exportDocx(state, patientName, examDate) {
 export default function AppVenosoProfundo() {
   const [patientName, setPatientName] = useState("");
   const [examDate, setExamDate] = useState(todayBR());
+  const [includeDateOnCopy, setIncludeDateOnCopy] = useState(true);
   const [examDateISO, setExamDateISO] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("D");
   const [state, setState] = useState({ D: defaultMemberState(), E: defaultMemberState() });
@@ -1424,7 +1424,7 @@ export default function AppVenosoProfundo() {
     const title = onlySide ? `SISTEMA VENOSO PROFUNDO DO MEMBRO INFERIOR ${SIDE_LABEL[onlySide]}` : reportTitle(state);
     const lines = [`ECODOPPLER COLORIDO \u2014 ${title}`, ""];
     if (patientName.trim()) lines.push(`Paciente: ${patientName.trim()}`, "");
-    if (examDate.trim()) lines.push(`Data: ${examDate.trim()}`, "");
+    if (examDate.trim() && includeDateOnCopy) lines.push(`Data: ${examDate.trim()}`, "");
     lines.push(introTexto(state), "");
     blocks.forEach((b) => {
       b.anatomico.forEach((l) => lines.push(l));
@@ -1439,7 +1439,7 @@ export default function AppVenosoProfundo() {
       lines.push("");
     });
     return lines;
-  }, [state, patientName, examDate]);
+  }, [state, patientName, examDate, includeDateOnCopy]);
 
   const buildReportHTML = useCallback((onlySide) => {
     const blocks = buildFullReportBlocks(state).filter((b) => !onlySide || b.side === onlySide);
@@ -1460,7 +1460,7 @@ export default function AppVenosoProfundo() {
     html += `<p style="${boldStyle}text-align:center;">ECODOPPLER COLORIDO — ${title}</p>`;
     html += `<p style="${pStyle}">&nbsp;</p>`;
     if (patientName.trim()) html += `<p style="${pStyle}"><b>Paciente:</b> ${patientName.trim()}</p>`;
-    if (examDate.trim()) {
+    if (examDate.trim() && includeDateOnCopy) {
       html += `<p style="${pStyle}"><b>Data:</b> ${examDate.trim()}</p>`;
       html += `<p style="${pStyle}">&nbsp;</p>`;
     }
@@ -1482,7 +1482,7 @@ export default function AppVenosoProfundo() {
 
     html += `</div>`;
     return html;
-  }, [state, patientName, examDate]);
+  }, [state, patientName, examDate, includeDateOnCopy]);
 
   const handleCopy = async (onlySide) => {
     const key = onlySide || "all";
@@ -1732,6 +1732,27 @@ export default function AppVenosoProfundo() {
             zIndex: 20,
           }}
         >
+          <label
+            style={{
+              flexBasis: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11.5,
+              color: COLORS.textMuted,
+              cursor: "pointer",
+              userSelect: "none",
+              marginBottom: 2,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeDateOnCopy}
+              onChange={(e) => setIncludeDateOnCopy(e.target.checked)}
+              style={{ accentColor: COLORS.accent, width: 14, height: 14 }}
+            />
+            Incluir data ao copiar texto
+          </label>
           <button
             onClick={() => setMobilePreview((v) => !v)}
             style={{
